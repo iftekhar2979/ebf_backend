@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WebRTC Video Call</title>
+  <style>
+    video {
+      width: 45%;
+      margin: 5px;
+      border: 1px solid #ccc;
+    }
+    #buttons {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>WebRTC Video Call Demo</h1>
+  <video id="localVideo" autoplay muted></video>
+  <video id="remoteVideo" autoplay></video>
+<h2>Your User Id : <span id="userid"> </span></h2>
+  <div id="buttons">
+    <input type="text" id="peerId" placeholder="Peer ID to call">
+    <div id="calling"></div>
+    <button id="startCall">Start Call</button>
+    <button id="leaveCall">Leave Call</button>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    let url ='https://petattix.merinasib.shop/'
+     // replace with your signaling server URL
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const peerIdInput = document.getElementById('peerId');
+    const userIdSpan = document.getElementById('userid');
+    const calling = document.getElementById('calling');
+    let recevingOffer = false 
+    let acceptedCall = false;
+
+    let localStream;
+    let peerConnection;
+    const config = {
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    };
+
+    const user = { name: '' + Math.floor(Math.random() * 1000) }; // example payload
+    url = url + '?user=' + user.name;
+    const socket = io(url);
+document.getElementById('userid').innerText = user.name;
+
+userIdSpan.innerText = user.name; 
+    socket.on('connect', () => {
+      console.log('Connected to signaling server',user);
+      socket['user'] = user;
+    //   console.log(socket)
+    });
+
+    
+    // Get user media
+    async function initLocalStream() {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localVideo.srcObject = localStream;
+    }
+
+    initLocalStream();
+
+    function createPeerConnection() {
+      peerConnection = new RTCPeerConnection(config);
+      // Add local tracks
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+      // When remote track arrives
+      peerConnection.ontrack = (event) => {
+        remoteVideo.srcObject = event.streams[0];
+      };
+
+      // ICE candidates
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+      console.log(event.candidate)
+          socket.emit('ice-candidate', { to: peerIdInput.value, candidate: event.candidate });
+        }
+      };
+    }
+
+    // Start call
+    document.getElementById('startCall').onclick = async () => {
+      const to = peerIdInput.value;
+      createPeerConnection();
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      socket.emit('offer', { to, offer });
+      console.log("offer sent correctly")
+    };
+   function callAccpeted(){
+      acceptedCall = true;
+    }
+    async function receiverOffer({userId}){
+      createPeerConnection();
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      socket.emit('offer', { to:userId, offer });
+      callAccpeted();
+      
+    }
+    if(acceptedCall){
+      offerReceiving();
+    }
+ 
+    function offerReceiving(){
+      recevingOffer = false;
+      calling.innerHTML = `h3 style="background:green; color:white">Call accepted.</h3>`;
+    }
+    // Leave call
+    document.getElementById('leaveCall').onclick = () => {
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+      remoteVideo.srcObject = null;
+      socket.emit('leave-call', { to: peerIdInput.value });
+    };
+socket.on('offer', (data) => {
+  // console.log("Offer received:", data);
+  if(data && data.from){
+    recevingOffer = true;
+    if(recevingOffer) {
+         console.log("📞 Offer is being received");
+
+    // Show an incoming call card with Accept / Reject buttons
+    calling.innerHTML = `
+      <div id="incoming-call" style="
+          background: #007bff; 
+          color: white; 
+          padding: 15px; 
+          border-radius: 10px; 
+          width: fit-content; 
+          margin: 10px 0;
+      ">
+        <h3>Incoming call from <span style="font-weight:bold">${data.userId}</span></h3>
+        <button id="acceptCallBtn" style="
+            background: green; 
+            color: white; 
+            border: none; 
+            padding: 8px 15px; 
+            margin-right: 10px; 
+            border-radius: 5px; 
+            cursor: pointer;
+        ">Accept</button>
+        <button id="denyCallBtn" style="
+            background: red; 
+            color: white; 
+            border: none; 
+            padding: 8px 15px; 
+            border-radius: 5px; 
+            cursor: pointer;
+        ">Reject</button>
+      </div>
+    `;
+
+    // When Accept is clicked
+    document.getElementById("acceptCallBtn").addEventListener("click", () => {
+      console.log("✅ Call accepted from:", data.userId);
+      receiverOffer({ userId: data.userId });
+
+      // Optionally, clear the UI after accepting
+      calling.innerHTML = `<h3 style="color:green;">Call accepted with ${data.userId}</h3>`;
+    });
+
+    // When Reject is clicked
+    document.getElementById("denyCallBtn").addEventListener("click", () => {
+      console.log("❌ Call rejected from:", data.userId);
+
+      // Optionally, notify the caller through socket
+      socket.emit("deny-call", { to: data.userId });
+
+      calling.innerHTML = `<h3 style="color:red;">Call rejected</h3>`;
+      recevingOffer = false;
+    });
+  } else {
+    console.log("📞 Incoming call ignored as another call is being processed.");   
+}
+  }  
+});
+    // Listen for incoming offer
+    socket.on('offer', async ({ from, offer }) => {
+      peerIdInput.value = from;
+      createPeerConnection();
+      await peerConnection.setRemoteDescription(offer);
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      socket.emit('offer-answer', { to: from, answer });
+    });
+
+    // Listen for incoming answer
+    socket.on('offer-answer', async ({ answer }) => {
+      console.log("OFFer Answer Called .",answer)
+      await peerConnection.setRemoteDescription(answer);
+    });
+
+    // Listen for incoming ICE candidates
+    socket.on('ice-candidate', async ({ candidate }) => {
+      console.log(userId,"Candidate",candidate)
+      try {
+        await peerConnection.addIceCandidate(candidate);
+      } catch (err) {
+        console.error('Error adding received ice candidate', err);
+      }
+    });
+
+    // Handle call end
+    socket.on('left-call', () => {
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+      remoteVideo.srcObject = null;
+      console.log('Peer left the call');
+    });
+
+  </script>
+</body>
+</html>

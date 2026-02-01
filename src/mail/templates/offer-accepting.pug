@@ -1,0 +1,116 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    title= subject
+    style.
+      body {
+        font-family: 'Helvetica', Arial, sans-serif;
+        background-color: #f4f6f8;
+        margin: 0;
+        padding: 0;
+      }
+      .email-container {
+        max-width: 600px;
+        background-color: #ffffff;
+        margin: 30px auto;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        background: linear-gradient(135deg, #16a34a, #22c55e);
+        color: #ffffff;
+        text-align: center;
+        padding: 25px 20px;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+      }
+      .body {
+        padding: 25px 30px;
+        color: #333333;
+      }
+      .body h3 {
+        margin-top: 0;
+        font-size: 18px;
+        color: #111827;
+      }
+      .body p {
+        line-height: 1.6;
+        font-size: 15px;
+        margin-bottom: 20px;
+      }
+      .product-info {
+        background-color: #f0fdf4;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid #dcfce7;
+      }
+      .product-info h4 {
+        margin: 5px 0;
+        font-size: 16px;
+      }
+      .highlight {
+        color: #16a34a;
+        font-weight: 600;
+      }
+      .cta {
+        text-align: center;
+        margin-top: 25px;
+      }
+      .cta a {
+        background-color: #16a34a;
+        color: #ffffff;
+        text-decoration: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 15px;
+        display: inline-block;
+        transition: background 0.3s ease;
+      }
+      .cta a:hover {
+        background-color: #15803d;
+      }
+      .footer {
+        text-align: center;
+        font-size: 12px;
+        color: #6b7280;
+        padding: 15px;
+        background-color: #f9fafb;
+      }
+
+  body
+    .email-container
+      // Header
+      .header
+        h1= header
+
+      // Body
+      .body
+        h3 Hi #{buyerfirst_name} #{buyerlast_name},
+        p
+          | Good news! 
+          span.highlight #{sellerfirst_name} #{sellerlast_name}
+          |  has accepted your offer for the following product:
+
+        .product-info
+          h4 🛍️ Product Name: 
+            span.highlight #{productName}
+          h4 💰 Listed Price: 
+            span.highlight #{sellingPrice}
+          h4 🤝 Accepted Offer Price: 
+            span.highlight #{offerPrice}
+
+        p
+          | You can now proceed with the next steps to complete your purchase. Log in to your account to review the details and finalize the order.
+
+        .cta
+          a(href=ctaUrl) Complete Your Delivery Information in the next step then whenever the seller fill the collection 
+
+      // Footer
+      .footer
+        | © #{currentYear} Pet Attix. All rights reserved.

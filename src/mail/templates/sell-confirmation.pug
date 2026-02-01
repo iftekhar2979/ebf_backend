@@ -1,0 +1,72 @@
+doctype html
+html
+  head
+    meta(charset="UTF-8")
+    style.
+      body { font-family: Arial, sans-serif; background: #f8f9fa; padding: 20px; }
+      .container { max-width: 700px; margin: auto; background: #fff; padding: 25px; border-radius: 8px; }
+      .title { font-size: 22px; font-weight: bold; margin-bottom: 10px; color: #333; }
+      .section-title { font-size: 18px; font-weight: bold; margin: 20px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+      .info-box { margin-bottom: 15px; }
+      .info-box p { margin: 3px 0; }
+      img.product-img { width: 120px; height: auto; border-radius: 8px; margin-right: 10px; }
+      .label-img { width: 100%; max-width: 250px; margin: 10px 0; border: 1px solid #ccc; }
+
+  body
+    .container
+      .title Your product has been sold 🎉
+
+      p Hello #{sellerName},  
+      p Your product has been purchased on Pet Attix! Below are the details:
+
+      // ORDER DETAILS
+      .section-title Order Details
+      .info-box
+        p Order ID: #{id}
+        p Status: #{status}
+        p Payment Status: #{paymentStatus}
+        p Parcel ID: #{parcelId}
+
+      // BUYER DETAILS
+      .section-title Buyer Details
+      .info-box
+        p Name: #{buyerName}
+        p Email: #{buyerEmail}
+        p Phone: #{buyerPhone}
+
+      // PRODUCT DETAILS
+      .section-title Product Details
+      .info-box
+        p Name: #{productName}
+        p Price: #{productPrice} #{currency}
+        p Category: #{productCategory}
+        p Condition: #{productCondition}
+        p Description: #{productDescription}
+
+      if productImages.length > 0
+        .info-box
+          p Product Images:
+          each img in productImages
+            img.product-img(src=`${process.env.BASE_URL}/${img.image}`)
+
+      // SENDCLOUD PARCEL DETAILS
+      .section-title Shipping & Label Details
+      .info-box
+        p Tracking Number: #{trackingNumber}
+        p Shipping Method: #{shippingMethod}
+        p Carrier: #{carrierCode}
+
+        if parcelLabel.length > 0
+          p Shipping Labels (A4/Normal Printer):
+          each url in parcelLabel
+            a(href=url target="_blank") View Label
+            br
+
+        if parcelDocuments.length > 0
+          p Download Documents:
+          each doc in parcelDocuments
+            a(href=doc.link target="_blank") #{doc.type} (#{doc.size})
+            br
+
+      hr
+      p Thank you for selling with Pet Attix!

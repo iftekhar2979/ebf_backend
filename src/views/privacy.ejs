@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy</title>
+</head>
+<body>
+  <div id="policy-container">
+    <%- content %> <!-- raw HTML rendered here -->
+  </div>
+</body>
+<script>
+    // Optional: use JS if you need dynamic updates
+    const content = `<%- content.replace(/`/g, '\\`').replace(/<\/script>/g, '<\\/script>') %>`;
+    document.getElementById('policy-container').innerHTML = content;
+</script>
+</html>

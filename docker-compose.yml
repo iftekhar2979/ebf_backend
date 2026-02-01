@@ -1,0 +1,33 @@
+
+services:
+  postgres:
+    image: postgres
+    container_name: postgres 
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:${POSTGRES_VOLUMES_PATH}
+    networks:
+      - backend
+    restart: "no"  # manual control, won't auto-restart
+
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    command: ["redis-server", "--maxmemory", "1024mb", "--maxmemory-policy", "allkeys-lru"]
+    networks:
+      - backend
+    restart: "no"  # manual control
+
+volumes:
+  postgres_data:
+
+networks:
+  backend:
+    driver: bridge

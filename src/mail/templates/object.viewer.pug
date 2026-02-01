@@ -1,0 +1,15 @@
+mixin viewObject(obj)
+  if !obj
+    p No data available.
+  else if typeof obj === 'object'
+    ul
+      each val, key in obj
+        li
+          if typeof val === 'object' && val !== null
+            strong #{key}:
+            +viewObject(val)
+          else
+            strong #{key}: 
+            span #{val}
+  else
+    span #{obj}

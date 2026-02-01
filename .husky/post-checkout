@@ -1,0 +1,1 @@
+echo [+] Current Branch is: `git branch --show-current`
