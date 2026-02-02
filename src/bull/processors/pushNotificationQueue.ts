@@ -7,7 +7,7 @@ import { MailService } from "src/mail/mail.service";
 import { NotificationsService } from "src/notifications/notifications.service";
 import { InjectLogger } from "src/shared/decorators/logger.decorator";
 import { Logger } from "winston";
-import { SinglePushNotificationPayload } from "./types";
+// import { SinglePushNotificationPayload } from "./types";
 
 @Processor("notifications") // Processor listening to 'ProductQueue'
 @Injectable()
@@ -19,14 +19,14 @@ export class PushNotificationProccessor {
     @InjectLogger() private readonly _logger: Logger
   ) {}
 
-  @Process("push_notifications")
-  async pushNotifications(job: Job<SinglePushNotificationPayload>) {
-    this._logger.log("Push Notification Logger", job.data);
-    console.log("Push notification ", job.data);
-    const { token, title, body } = job.data;
-    // if(token){}
-    await this._firebaseService.sendPushNotification(token, title, body);
-  }
+  // @Process("push_notifications")
+  // async pushNotifications(job: Job<SinglePushNotificationPayload>) {
+  //   this._logger.log("Push Notification Logger", job.data);
+  //   console.log("Push notification ", job.data);
+  //   const { token, title, body } = job.data;
+  //   // if(token){}
+  //   await this._firebaseService.sendPushNotification(token, title, body);
+  // }
 
   // @Process("notification_saver")
   // async notificationSaver(job: Job<NotificationJobPayload>) {

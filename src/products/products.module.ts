@@ -14,10 +14,12 @@ import { ImagesModule } from './images/images.module';
 import { BoostsService } from './boosts/boosts.service';
 import { BoostsModule } from './boosts/boosts.module';
 import { StatsModule } from './stats/stats.module';
+import { EventsModule } from './events/events.module';
+import { GlobalStatsModule } from './global_stats/global_stats.module';
 
 @Module({
   controllers: [ProductsController],
   providers: [ProductsService,],
-  imports: [CategoriesModule, SubCategoriesModule, ViewsModule, VarientsModule, SizesModule, ColorsModule, RanksModule, ImagesModule, BoostsModule, StatsModule]
+  imports: [CategoriesModule, SubCategoriesModule, ViewsModule, VarientsModule, SizesModule, ColorsModule, RanksModule, ImagesModule, BoostsModule, StatsModule, EventsModule, GlobalStatsModule]
 })
 export class ProductsModule {}

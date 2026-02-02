@@ -34,21 +34,14 @@ import { NotificationsModule } from "./notifications/notifications.module";
 import { SeederService } from "./seeder/seeder.service";
 import { SettingsModule } from "./settings/settings.module";
 import { SocketModule } from "./socket/socket.module";
-import { ShopsModule } from './shops/shops.module';
 import { ReelsModule } from './reels/reels.module';
 import { ProductsModule } from './products/products.module';
-import { ProductViewsModule } from './product_views/product_views.module';
-import { WishlistsModule } from './wishlists/wishlists.module';
-import { WhishlistsController } from './whishlists/whishlists.controller';
-import { ProductEventsModule } from './product_events/product_events.module';
+
 import { CartsModule } from './carts/carts.module';
 import { ReviewsModule } from './reviews/reviews.module';
-import { ShippingInfosModule } from './shipping_infos/shipping_infos.module';
-import { ReelsViewsModule } from './reels_views/reels_views.module';
-import { ProductSizesModule } from './product_sizes/product_sizes.module';
-import { ProductVarientsModule } from './product_varients/product_varients.module';
-import { ProductCategoriesService } from './product_categories/product_categories.service';
-import { ProductCategoriesModule } from './product_categories/product_categories.module';
+import { WishlistsModule } from './wishlists/wishlists.module';
+import { OrdersModule } from './orders/orders.module';
+import { PaymentsModule } from './payments/payments.module';
 /**
  * It is the root module for the application in we import all feature modules and configure modules and packages that are common in feature modules. Here we also configure the middlewares.
  *
@@ -120,21 +113,15 @@ import { ProductCategoriesModule } from './product_categories/product_categories
     SettingsModule,
     SocketModule,
     NotificationsModule,
-    ShopsModule,
     ReelsModule,
     ProductsModule,
-    ProductViewsModule,
-    WishlistsModule,
-    ProductEventsModule,
     CartsModule,
     ReviewsModule,
-    ShippingInfosModule,
-    ReelsViewsModule,
-    ProductSizesModule,
-    ProductVarientsModule,
-    ProductCategoriesModule,
+    WishlistsModule,
+    OrdersModule,
+    PaymentsModule,
   ],
-  controllers: [AppController, WhishlistsController],
+  controllers: [AppController],
   providers: [
     AppService,
     {
@@ -145,7 +132,6 @@ import { ProductCategoriesModule } from './product_categories/product_categories
     // ImageProcessor,
     PushNotificationProccessor,
     SeederService,
-    ProductCategoriesService,
     // ProductBoostgService,
   ],
 })

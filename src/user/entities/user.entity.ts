@@ -7,6 +7,7 @@ import {
   Entity,
   Index,
   JoinColumn,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   OneToOne,
@@ -15,17 +16,29 @@ import {
 } from "typeorm";
 import { UserRoles } from "../enums/role.enum";
 import { Verification } from "./verification.entity";
+import { ShopProfile } from "../shops/entities/shop.entity";
+import { Reel } from "src/reels/entities/reels.entity";
+import { Product } from "src/products/entities/product.entity";
+import { ProductView } from "src/products/views/entities/views.entity";
+import { ProductEvent } from "src/products/events/entities/events.entity";
+import { Wishlist } from "src/wishlists/entities/wishlists.entity";
+import { Cart } from "src/carts/entities/carts.entity";
+import { Order } from "src/orders/entities/orders.entity";
+import { Review } from "src/reviews/entities/reviews.entity";
+import { ShippingInfo } from "../shipping_informations/entities/shipping_informations.entity";
+import { Notification } from "src/notifications/entities/notifications.entity";
+import { ConversationParticipant } from "src/participants/entities/participants.entity";
 
 export enum USER_STATUS {
   VERIFIED = "verified",
   NOT_VERIFIED = "not_verified",
 }
 @Entity({ name: "users" })
-@Index('Composite', ['role', 'status'])
-@Index('composite', ['status', 'deletedAt'])
+@Index('Filter_With_Roles_And_Status', ['roles', 'status'])
+@Index('Status_and_Deleted', ['status', 'deletedAt'])
 @Index(['email', 'id'], { unique: true })
 export class User {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   @ApiProperty()
   id: string;
 
@@ -135,6 +148,6 @@ export class User {
   )
   conversationParticipants: ConversationParticipant[];
 
-  @OneToMany(() => Message, (message) => message.sender)
-  messages: Message[];
+  // @OneToMany(() => Message, (message) => message.sender)
+  // messages: Message[];
 }

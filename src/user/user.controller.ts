@@ -189,9 +189,5 @@ export class UserController {
   ) {
     return await this._userAddressService.createAddress(userInfo, dto);
   }
-  @Get("drop-off/address")
-  @UseGuards(JwtAuthenticationGuard)
-  async getUserDropOffAddress(@GetUser() user: User) {
-    return await this._userAddressService.findByUserId(user.id);
-  }
+  
 }
