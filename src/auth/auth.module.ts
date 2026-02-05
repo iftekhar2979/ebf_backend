@@ -5,7 +5,6 @@ import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { OtpModule } from "src/otp/otp.module";
-import { Verification } from "src/user/entities/verification.entity";
 import { MailModule } from "../mail/mail.module";
 import { User } from "../user/entities/user.entity";
 import { UserModule } from "../user/user.module";
@@ -14,6 +13,7 @@ import { AuthService } from "./auth.service";
 import { GoogleStrategy } from "./strategies/google.strategy";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { LocalStrategy } from "./strategies/local.strategy";
+import { Verification } from "src/user/entities/verification.entity";
 
 /**
  * It is a feature module where we keep the controller, service and other code related to authentication and  we import other modules and configure modules and packages that are being used in this module.
@@ -28,7 +28,7 @@ import { LocalStrategy } from "./strategies/local.strategy";
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([User, Verification]),
+    TypeOrmModule.forFeature([User,Verification]),
     PassportModule.register({ defaultStrategy: "jwt" }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

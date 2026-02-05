@@ -94,9 +94,8 @@ export class AuthService {
 
       // 7. Post-Transaction: Communication (Email/SMS)
       // We do this outside the transaction so if email fails, user stays created
-      const token = await this.signTokenSendEmailAndSMS(user.raw[0]);
-      await this._otpQueue.add("create", { user: user.raw[0], otpType: OtpType.REGISTRATION });
-
+    
+const token = await this.otpSending(user.raw[0])
       return {
         ok: true,
         data: user.raw[0],
@@ -115,7 +114,7 @@ export class AuthService {
     }
   }
 
-  async updateRefreshToken(userId: string, refreshToken: string) {
+  public async updateRefreshToken(userId: string, refreshToken: string) {
     const hashedRefreshToken = await argon2hash(refreshToken);
     await this._userRepository.update(userId, {
       current_refresh_token: hashedRefreshToken,
@@ -147,6 +146,11 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
+ async otpSending(user){
+    const token = await this.signTokenSendEmailAndSMS(user);
+      await this._otpQueue.add("create", { user: user, otpType: OtpType.REGISTRATION });
+return token
+  }
   private handleDatabaseError(err: any) {
     if (err instanceof HttpException) throw err;
 

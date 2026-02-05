@@ -16,8 +16,8 @@ export class ShopAddress {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'int' })
-  userId: number;
+  @Column({ type: 'uuid' })
+  userId: string;
 
   @Column({ type: 'int' })
   shopId: number;

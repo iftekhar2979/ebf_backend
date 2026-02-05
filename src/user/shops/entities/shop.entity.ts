@@ -13,9 +13,9 @@ export class ShopProfile {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'uuid' })
   @Index({ unique: true })
-  userId: number;
+  userId: string;
 
   @Column({ type: 'varchar', nullable: true })
   contactNumber: string;

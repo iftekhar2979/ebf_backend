@@ -11,8 +11,9 @@ import { GetUsersQueryDto } from "./dto/get-user.query.dto";
 import { UpdateUserProfileDto } from "./dto/update-profile.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { User } from "./entities/user.entity";
-import { Verification } from "./entities/verification.entity";
 import { UserRoles } from "./enums/role.enum";
+import { ShopsService } from "./shops/shops.service";
+import { ShopSignupDto } from "./shops/dtos/Signup.dto";
 
 /**
  * This service contain contains methods and business logic related to user.
@@ -21,11 +22,12 @@ import { UserRoles } from "./enums/role.enum";
 export class UserService {
   constructor(
     @InjectRepository(User) private _userRepository: Repository<User>,
-    @InjectRepository(Verification) private _verificationRepo: Repository<Verification>,
+    // @InjectRepository(Verification) private _verificationRepo: Repository<Verification>,
     @InjectLogger() private readonly _logger: Logger,
     private readonly _redisService: RedisService,
     private readonly _mailService: MailService,
-    private _dataSource: DataSource
+    private _dataSource: DataSource ,
+    private _shopService:ShopsService
   ) {}
 
   async createUser(userData: Partial<User>): Promise<{ data: Partial<User>; ok: boolean; message: string }> {
@@ -102,13 +104,7 @@ export class UserService {
     // console.log(body)
     const result = await this._userRepository.insert(body);
     const user = await this._userRepository.findOne({ where: { id: result.identifiers[0].id } });
-    await this._verificationRepo.insert({
-      // user:user,
-      user,
-      is_deleted: false,
-      is_email_verified: true,
-      // user_id:user.
-    });
+    
     return "Admin Created Successfully";
   }
   async updateProfile(userId: string, updateDto: UpdateUserProfileDto): Promise<User> {
@@ -219,5 +215,8 @@ export class UserService {
     }
 
     return updatedUser;
+  }
+   signUpShops(signUp:ShopSignupDto){
+return this._shopService.signup(signUp)
   }
 }

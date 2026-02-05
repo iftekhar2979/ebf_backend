@@ -15,7 +15,6 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 import { UserRoles } from "../enums/role.enum";
-import { Verification } from "./verification.entity";
 import { ShopProfile } from "../shops/entities/shop.entity";
 import { Reel } from "src/reels/entities/reels.entity";
 import { Product } from "src/products/entities/product.entity";
@@ -86,11 +85,6 @@ export class User {
   //Relationship
 
   //Relation ship between user and verification
-  @OneToOne(() => Verification, (verification) => verification.user, {
-    nullable: true,
-    onDelete: "SET NULL",
-  })
-  verification: Verification;
 
   //date properties-+
 

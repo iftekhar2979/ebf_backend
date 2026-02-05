@@ -50,6 +50,7 @@ import { ForgetPasswordGuard } from "./guards/forget-password.guard";
 import { GoogleAuthGuard } from "./guards/google-auth.guard";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { JwtAuthenticationGuard } from "./guards/session-auth.guard";
+import { ShopSignupDto } from "src/user/shops/dtos/Signup.dto";
 
 @Controller("auth")
 @ApiTags("Auth")
@@ -63,7 +64,7 @@ export class AuthController {
 
     @InjectQueue("notifications") private readonly _queue: Queue
   ) {}
-  @Post("signup")
+  @Post("signup/shops")
   @ApiOperation({
     description: "Api to register new users.",
     summary: "Api to register new users. It takes (first_name, last_name, email and password) as input",
@@ -73,9 +74,9 @@ export class AuthController {
     type: UserResponseDto,
   })
   @ApiConflictResponse({ description: "In case of email already exists in the database" })
-  async signup(@Body() createUserDto: CreateUserDto, @Req() req: Request) {
-    const { data, token } = await this._authService.signup(createUserDto, req);
-
+  async signup(@Body() signup: ShopSignupDto, @Req() req: Request) {
+    const { data } = await this._userService.signUpShops(signup)
+const token = await this._authService.otpSending(data)
     return {
       status: "success",
       data,
