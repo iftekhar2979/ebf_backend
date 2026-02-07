@@ -83,38 +83,6 @@ const token = await this._authService.otpSending(data)
       token,
     };
   }
-
-  /**
-   * Patch API - "/activate/:token" - activates the user account and sends the activation mail to user.
-   * it requires authentication.
-   * @param token account activation token.
-   * @returns if successfully activated, returns response status and message.
-   * @throws UnauthorizedException with message in case user is not logged in.
-   */
-  // @Patch("activate/:token")
-  // // @UseGuards(JwtAuthGuard)
-  // @ApiOperation({
-  //   description: "Api to activate new user account and sends the activation mail to user",
-  //   summary: "Api to activate new user account and sends the activation mail to user",
-  // })
-  // @ApiOkResponse({
-  //   description: "Activates the account and sends the activation mail to user",
-  //   type: MessageResponseDto,
-  // })
-  // @ApiUnauthorizedResponse({ description: "In case user is not logged in for activation" })
-  // @ApiBearerAuth()
-  // async activateAccount(@Param("token") token: string) {
-  //   const isActivated = await this._authService.activateAccount(token);
-  //   if (isActivated) return { status: "success", message: "Account Activated successfully" };
-  // }
-
-  /**
-   * Post API - "/login" - used for user login and get authentication token to access other protected APIs.
-   * it requires the LoginUserDto object in request body.
-   * @param req HTTP request object containing user information.
-   * @returns newly logged in user object, token for authentication and response status.
-   * @throws UnauthorizedException with message in case user is not logged in.
-   */
   @Post("login")
   @HttpCode(200)
   // @UseGuards(LocalAuthGuard)
@@ -234,38 +202,6 @@ const token = await this._authService.otpSending(data)
     };
   }
 
-  /**
-   * Get API - "/google/callback" - used for login through google account. It is a webhook hit by Google Auth services with user information.
-   * @param req HTTP request object containing user information from google.
-   * @returns created or logged in user object, token for authentication and response status.
-   * @throws ConflictException if the user with that email already exists.
-   * @throws UnauthorizedException if credentials are invalid.
-   */
-  // @Get("google/callback")
-  // @UseGuards(GoogleAuthGuard)
-  // @ApiOkResponse({
-  //   description: "Created or found Existing user and Login successful",
-  //   type: UserResponseDto,
-  // })
-  // @ApiUnauthorizedResponse({ description: "Invalid credentials" })
-  // @ApiConflictResponse({ description: "User Already Exists" })
-  // @ApiOAuth2(["email", "profile"])
-  // async loginGoogleRedirect(@Req() req: Request) {
-  //   const { user, token } = await this._authService.loginGoogle(req);
-
-  //   return {
-  //     status: "success",
-  //     user,
-  //     token,
-  //   };
-  // }
-
-  /**
-   * Get API - "/logout" - used for logging out the user.
-   * it requires authentication.
-   * @returns null for token and response status.
-   * @throws UnauthorizedException with message in case user is not logged in.
-   */
   @Get("logout")
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
@@ -286,86 +222,6 @@ const token = await this._authService.otpSending(data)
     return this._authService.refreshToken(refreshTokenDto);
   }
 
-  /**
-   * Post API - "/forgot-password" - used for reseting the password in case the user forgets the password. it sends a mail with password reset URL to user's email.
-   * @returns response status and response message "Password reset email sent successfully".
-   * @throws NotFoundException if the user with given email is not found.
-   */
-  // @Post("forgot-password")
-  // @ApiCreatedResponse({
-  //   description: "Create password reset token and send it to user email",
-  //   type: MessageResponseDto,
-  // })
-  // @ApiOperation({
-  //   description:
-  //     "Api to reset the password in case the user forgets the password. it sends a mail with password reset URL to user's email.",
-  //   summary:
-  //     "Api to reset the password in case the user forgets the password. it sends a mail with password reset URL to user's email.",
-  // })
-  // @ApiNotFoundResponse({ description: "User is not found" })
-  // async forgotPassword(@Body() forgotPassword: ForgotPasswordDto, @Req() req: Request) {
-  //   const status = await this._authService.forgotPassword(forgotPassword?.email, req);
-
-  //   if (!status) throw new InternalServerErrorException("Error sending email!");
-
-  //   return {
-  //     status: "success",
-  //     message: "Password reset email sent successfully",
-  //   };
-  // }
-
-  /**
-   * Get API - "/verify/:token" - used for pre-verification of the token before redirecting user to reset password page.
-   * @param token reset password token.
-   * @returns response status and response message.
-   * @throws BadRequestException if the user with that email already exists.
-   */
-  // @Get("verify/:token")
-  // @ApiOkResponse({ description: "User Password Reset token verification" })
-  // @ApiOperation({
-  //   description: "Api to verify reset password token.",
-  //   summary: "Api to verify reset password token.",
-  // })
-  // @ApiBadRequestResponse({ description: "In case of invalid or expired token" })
-  // async verifyToken(@Param("token") token: string) {
-  //   const message = await this._authService.verifyToken(token);
-
-  //   return { status: "success", message };
-  // }
-
-  /**
-   * Get API - "/reset-password/:token" - used for reseting the password using the token received in the mail
-   * @param token reset password token.
-   * @param resetPassword contains new password to be set.
-   * @returns updated user object, response status and response message.
-   * @throws BadRequestException in case of invalid or expired token.
-   * @throws NotAcceptableException if password and passwordConfirm does not match.
-   */
-  // @Patch("reset-password/:token")
-  // @ApiOkResponse({
-  //   description: "User Password Reset was successful",
-  //   type: UserResponseDto,
-  // })
-  // @ApiOperation({
-  //   description: "Api to reset users password.",
-  //   summary: "Api to reset users password.",
-  // })
-  // @ApiNotAcceptableResponse({ description: "If password and passwordConfirm does not match" })
-  // @ApiBadRequestResponse({ description: "In case of invalid or expired token" })
-  // async resetPassword(@Param("token") token: string, @Body() resetPassword: ResetPasswordDto) {
-  //   const { updatedUser, newToken } = await this._authService.resetPassword(token, resetPassword);
-  //   return { status: "success", user: updatedUser, token: newToken };
-  // }
-
-  /**
-   * Patch API - "/update-my-password" - used for updating the user's password.
-   * it requires authentication
-   * @param user user information of current logged in user.
-   * @param updateMyPassword contains current password and new password to be set.
-   * @returns updated user object, authentication token and response status.
-   * @throws BadRequestException if given new password and user password are same or if given new password and passwordConfirm are different.
-   * @throws UnauthorizedException if User is not logged in OR If input password and user password does not match.
-   */
   @Patch("update-my-password")
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
@@ -390,14 +246,6 @@ const token = await this._authService.otpSending(data)
     return { status: "success", user: updatedUser, token: newToken };
   }
 
-  /**
-   * Delete API - "/delete-me" - used for deleting the user's account.
-   * it requires authentication
-   * @param user user information of current logged in user.
-   * @returns updated user object, authentication token and response status.
-   * @throws BadRequestException if User does not exist.
-   * @throws UnauthorizedException if User is not logged in.
-   */
   @Delete("delete-me")
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
@@ -416,24 +264,4 @@ const token = await this._authService.otpSending(data)
     }
   }
 
-  /**
-   * Get API - "/send-activation-mail" - used for sending account activation mail.
-   * it requires authentication
-   * @param user user information of current logged in user.
-   * @param req HTTP request object.
-   * @returns response message "Activation mail sent successfully!" and status.
-   */
-  // @Get("send-activation-mail")
-  // @UseGuards(JwtAuthGuard)
-  // @ApiOperation({
-  //   description: "Api to send account activation mail.",
-  //   summary: "Api to send account activation mail.",
-  // })
-  // @ApiOkResponse({ description: "Send Account activation email", type: MessageResponseDto })
-  // @ApiBearerAuth()
-  // async sendAccountActivationToken(@GetUser() user: User, @Req() req: Request) {
-  //   const status = await this._authService.sendAccountActivationMail(user, req);
-
-  //   return status === "success" ? { status, message: "Activation mail sent successfully!" } : "";
-  // }
 }
