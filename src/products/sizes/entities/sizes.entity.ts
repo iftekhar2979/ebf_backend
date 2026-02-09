@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
+
 @Entity('sizes')
 export class Size {
   @PrimaryGeneratedColumn()
@@ -16,7 +17,7 @@ export class Size {
   type: string;
 
   @Column({ type: 'varchar' })
-  name: string;
+  desc: string;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
