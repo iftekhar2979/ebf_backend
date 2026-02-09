@@ -22,7 +22,7 @@ export function createOrmConfig(): DataSourceOptions & TypeOrmModuleOptions {
     entities: [join(__dirname, "..", "**", "**", "*.entity{.ts,.js}")],
     // autoLoadEntities: true,
     synchronize: true,
-    dropSchema: true,
+    // dropSchema: true,
     retryAttempts: 1,
     connectTimeoutMS: 10000,
     migrations: [join(__dirname, "..", "database", "migrations", "*{.ts,.js}")],
