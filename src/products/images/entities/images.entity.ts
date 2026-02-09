@@ -22,6 +22,9 @@ export class ProductImage {
   @Column({ type: 'varchar' })
   image: string;
 
+  @Column({ type: 'boolean',default:false })
+  isChanged: boolean;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 

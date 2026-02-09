@@ -28,8 +28,8 @@ export class ProductVariant {
   @Column({ type: 'int' })
   colorId: number;
 
-  @Column({ type: 'varchar', unique: true })
-  sku: string;
+  @Column({ type: 'int', })
+  sku: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   price: number;
