@@ -12,16 +12,21 @@ import { UserModule } from "src/user/user.module";
 import { BullController } from "./bull.controller";
 import { BullService } from "./bull.service";
 import { AuthQueueProcessor } from "./processors/AuthenticationQueue";
+import { ProductStat } from "src/products/stats/entities/product_stats.entity";
+import { ProductsModule } from "src/products/products.module";
+import { CachesModule } from "src/products/caches/caches.module";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Verification]),
+    TypeOrmModule.forFeature([User, Verification, ProductStat]),
     ,
     MailModule,
     FirebaseModule,
     NotificationsModule,
     UserModule,
     OtpModule,
+    ProductsModule,
+    CachesModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

@@ -15,9 +15,10 @@ import { ProductColor } from 'src/products/colors/entities/colors.entity';
 import { UpdateProductVariantDto } from 'src/products/dto/update-product.dto';
 import { CreateProductVariantDto } from 'src/products/dto/create-product.dto';
 import { ProductCacheService } from '../caches/caches.service';
+import { InjectLogger } from 'src/shared/decorators/logger.decorator';
 @Injectable()
 export class VarientsService {
-  private readonly logger = new Logger(VarientsService.name);
+  // private readonly logger = new Logger(VarientsService.name);
 
   constructor(
     @InjectRepository(ProductVariant)
@@ -30,6 +31,7 @@ export class VarientsService {
     private colorRepository: Repository<ProductColor>,
     private dataSource: DataSource,
     private productCacheService: ProductCacheService,
+    @InjectLogger() private readonly logger:Logger,
     @InjectQueue('product-queue') private productQueue: Queue,
   ) {}
 

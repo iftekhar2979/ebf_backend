@@ -19,10 +19,11 @@ import { GlobalStatsModule } from './global_stats/global_stats.module';
 import { CachesModule } from './caches/caches.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
+import { BullModule } from '@nestjs/bull';
 
 @Module({
   controllers: [ProductsController],
   providers: [ProductsService,],
-  imports: [TypeOrmModule.forFeature([Product]),CategoriesModule, SubCategoriesModule, ViewsModule, VarientsModule, SizesModule, ColorsModule, RanksModule, ImagesModule, BoostsModule, StatsModule, EventsModule, GlobalStatsModule, CachesModule]
+  imports: [TypeOrmModule.forFeature([Product]),BullModule.registerQueue({name:'product-queue'}),CategoriesModule, SubCategoriesModule, ViewsModule, VarientsModule, SizesModule, ColorsModule, RanksModule, ImagesModule, BoostsModule, StatsModule, EventsModule, GlobalStatsModule, CachesModule]
 })
 export class ProductsModule {}
