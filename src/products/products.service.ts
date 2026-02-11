@@ -11,12 +11,15 @@ import { ProductCacheService } from './caches/caches.service';
 import { InjectLogger } from 'src/shared/decorators/logger.decorator';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 
 @Injectable()
 export class ProductsService {
     constructor(private readonly _dataSource:DataSource,
         private readonly productCacheService:ProductCacheService,
         @InjectLogger() private readonly logger:Logger,
+        @InjectQueue('product-queue') private readonly productQueue:Queue,
         @InjectRepository(Product) private readonly productRepository:Repository<Product>
     ){}
 
@@ -104,16 +107,16 @@ export class ProductsService {
   });
 
   // Step 3: Fire-and-forget async operations
-//   this.productQueue.add('product-created', {
-//     productId: savedProduct.id,
-//     userId: savedProduct.userId,
-//     subCategoryId: savedProduct.subCategoryId,
-//   });
+  this.productQueue.add('product-created', {
+    productId: savedProduct.id,
+    userId: savedProduct.userId,
+    subCategoryId: savedProduct.subCategoryId,
+  });
 
-//   this.productQueue.add('process-images', {
-//     productId: savedProduct.id,
-//     imageUrls: createProductDto.images.map((img) => img.image),
-//   });
+  this.productQueue.add('process-images', {
+    productId: savedProduct.id,
+    imageUrls: createProductDto.images.map((img) => img.image),
+  });
 
   // Step 4: Return product (without extra find query)
   return {
