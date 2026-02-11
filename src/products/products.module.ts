@@ -16,10 +16,13 @@ import { BoostsModule } from './boosts/boosts.module';
 import { StatsModule } from './stats/stats.module';
 import { EventsModule } from './events/events.module';
 import { GlobalStatsModule } from './global_stats/global_stats.module';
+import { CachesModule } from './caches/caches.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Product } from './entities/product.entity';
 
 @Module({
   controllers: [ProductsController],
   providers: [ProductsService,],
-  imports: [CategoriesModule, SubCategoriesModule, ViewsModule, VarientsModule, SizesModule, ColorsModule, RanksModule, ImagesModule, BoostsModule, StatsModule, EventsModule, GlobalStatsModule]
+  imports: [TypeOrmModule.forFeature([Product]),CategoriesModule, SubCategoriesModule, ViewsModule, VarientsModule, SizesModule, ColorsModule, RanksModule, ImagesModule, BoostsModule, StatsModule, EventsModule, GlobalStatsModule, CachesModule]
 })
 export class ProductsModule {}

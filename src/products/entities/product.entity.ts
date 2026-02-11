@@ -39,8 +39,8 @@ export class Product {
   @Column({ type: 'varchar' })
   productName: string;
 
-  @Column({ type: 'int' })
-  userId: number;
+  @Column({ type: 'varchar' })
+  userId: string;
 
   @Column({
     type: 'enum',
