@@ -66,10 +66,10 @@ export class ProductsController {
     return this.productsService.findAll(filters);
   }
 
-//   @Get('trending')
-//   async getTrending(@Query('limit', new ParseIntPipe({ optional: true })) limit?: number) {
-//     return this.productsService.getTrendingProducts(limit || 10);
-//   }
+  @Get('trending')
+  async getTrending(@Query('limit', new ParseIntPipe({ optional: true })) limit?: number) {
+    return this.productsService.getTrendingProducts(limit || 10);
+  }
 
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
@@ -89,9 +89,9 @@ export class ProductsController {
     return this.productsService.update(id, updateProductDto);
   }
 
-//   @Delete(':id')
-//   @HttpCode(HttpStatus.OK)
-//   async remove(@Param('id', ParseIntPipe) id: number) {
-//     return this.productsService.remove(id);
-//   }
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    return this.productsService.remove(id);
+  }
 }

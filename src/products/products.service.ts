@@ -145,14 +145,14 @@ async incrementView(productId: number) {
    * Get trending products (most viewed)
    */
   async getTrendingProducts(limit: number = 10) {
-    return this.productRepository
+    return await this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.stats', 'stats')
       .leftJoinAndSelect('product.images', 'images')
       .leftJoinAndSelect('product.variants', 'variants')
       .orderBy('stats.viewCount', 'DESC')
       .take(limit)
-      .getMany();
+      // .getMany();
   }
 
   /**
