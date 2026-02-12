@@ -150,9 +150,9 @@ async incrementView(productId: number) {
       .leftJoinAndSelect('product.stats', 'stats')
       .leftJoinAndSelect('product.images', 'images')
       .leftJoinAndSelect('product.variants', 'variants')
-      .orderBy('stats.viewCount', 'DESC')
+      .orderBy('stats.totalViews', 'DESC')
       .take(limit)
-      // .getMany();
+      .getMany();
   }
 
   /**
