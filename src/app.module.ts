@@ -43,6 +43,8 @@ import { WishlistsModule } from './wishlists/wishlists.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ProductQueueProcessor } from "./bull/processors/productQueue";
+import { CachesModule } from "./products/caches/caches.module";
+import { StatsModule } from "./products/stats/stats.module";
 /**
  * It is the root module for the application in we import all feature modules and configure modules and packages that are common in feature modules. Here we also configure the middlewares.
  *
@@ -120,7 +122,8 @@ import { ProductQueueProcessor } from "./bull/processors/productQueue";
     ReviewsModule,
     WishlistsModule,
     OrdersModule,
-    
+    CachesModule,
+    StatsModule,
     PaymentsModule,
   ],
   controllers: [AppController],

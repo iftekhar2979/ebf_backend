@@ -26,12 +26,12 @@ import { UserRoles } from 'src/user/enums/role.enum';
 import { Roles } from 'src/user/decorators/roles.decorator';
 
 @Controller('products')
+ @UseGuards(JwtAuthenticationGuard,RolesGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  @UseGuards(JwtAuthenticationGuard,RolesGuard)
   @Roles(UserRoles.SHOP_OWNER)
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createProductDto: CreateProductDto,@GetUser() user:User) {
@@ -39,8 +39,9 @@ export class ProductsController {
   }
 
   @Get()
+  @Roles(UserRoles.SHOP_OWNER,UserRoles.USER , UserRoles.ADMIN)
   async findAll(
-    @Query('userId', new ParseIntPipe({ optional: true })) userId?: number,
+    @Query('userId') userId?: string,
     @Query('subCategoryId', new ParseIntPipe({ optional: true })) subCategoryId?: number,
     @Query('targetedGender') targetedGender?: string,
     @Query('minPrice', new ParseIntPipe({ optional: true })) minPrice?: number,
@@ -70,15 +71,15 @@ export class ProductsController {
 //     return this.productsService.getTrendingProducts(limit || 10);
 //   }
 
-//   @Get(':id')
-//   async findOne(@Param('id', ParseIntPipe) id: number) {
-//     const product = await this.productsService.findOne(id);
+  @Get(':id')
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const product = await this.productsService.findOne(id);
     
-//     // Track view asynchronously
-//     this.productsService.incrementView(id);
+    // Track view asynchronously
+    this.productsService.incrementView(id);
     
-//     return product;
-//   }
+    return product;
+  }
 
   @Patch(':id')
   async update(

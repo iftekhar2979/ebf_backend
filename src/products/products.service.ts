@@ -134,6 +134,51 @@ export class ProductsService {
   };
 }
 
+async incrementView(productId: number) {
+    await this.productQueue.add('update-product-stats', {
+      productId,
+      incrementViews: true,
+    });
+  }
+
+    /**
+   * Get trending products (most viewed)
+   */
+  async getTrendingProducts(limit: number = 10) {
+    return this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.stats', 'stats')
+      .leftJoinAndSelect('product.images', 'images')
+      .leftJoinAndSelect('product.variants', 'variants')
+      .orderBy('stats.viewCount', 'DESC')
+      .take(limit)
+      .getMany();
+  }
+
+  /**
+   * Soft delete a product
+   */
+  async remove(id: number) {
+    const product = await this.productRepository.findOne({
+      where: { id },
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    await this.productRepository.softDelete(id);
+
+    // Invalidate cache
+    await this.productQueue.add('invalidate-cache', {
+      productId: id,
+      userId: product.userId,
+      subCategoryId: product.subCategoryId,
+    });
+
+    return { message: 'Product deleted successfully' };
+  }
+
 async findAll(filters: ProductFilters = {}) {
   // 1. Build stable cache key
   const cacheKey = `products:${JSON.stringify(filters)}`;

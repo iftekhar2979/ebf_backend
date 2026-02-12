@@ -5,20 +5,21 @@ import { Repository } from 'typeorm';
 import { OmitType } from '@nestjs/mapped-types';
 import { RedisService } from 'src/redis/redis.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { ProductCreatedJob } from 'src/bull/processors/productQueue';
 @Injectable()
 export class StatsService {
     constructor(
         @InjectRepository(ProductStat) private readonly productStatistics:Repository<ProductStat>,
-        //  @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ){
         
     }
-//     create(dto:ProductStat[]){
-//  try{
+    async create(dto:ProductCreatedJob){
+ try{
+    const product = this.productStatistics.create({productId:dto.productId ,totalBoostScore:0 , totalCarts:0, totalOrders:0 ,totalViews:0})
+await this.productStatistics.save(product)
 
-
-//  }catch(err){
-
-//  }
-//     }
+ }catch(err){
+console.log(err)
+ }
+    }
 }

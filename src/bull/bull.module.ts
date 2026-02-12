@@ -15,6 +15,7 @@ import { AuthQueueProcessor } from "./processors/AuthenticationQueue";
 import { ProductStat } from "src/products/stats/entities/product_stats.entity";
 import { ProductsModule } from "src/products/products.module";
 import { CachesModule } from "src/products/caches/caches.module";
+import { StatsModule } from "src/products/stats/stats.module";
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { CachesModule } from "src/products/caches/caches.module";
     OtpModule,
     ProductsModule,
     CachesModule,
+    StatsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

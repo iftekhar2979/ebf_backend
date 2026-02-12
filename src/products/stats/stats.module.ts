@@ -5,6 +5,7 @@ import { ProductStat } from './entities/product_stats.entity';
 
 @Module({
   imports:[TypeOrmModule.forFeature([ProductStat])],
-  providers: [StatsService]
+  providers: [StatsService],
+  exports:[StatsService]
 })
 export class StatsModule {}

@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import { ProductStat } from 'src/products/stats/entities/product_stats.entity';
 import { ProductCacheService } from 'src/products/caches/caches.service';
 import { InjectLogger } from 'src/shared/decorators/logger.decorator';
+import { StatsService } from 'src/products/stats/stats.service';
 export interface ProductCreatedJob {
   productId: number;
   userId: string;
@@ -34,7 +35,8 @@ export class ProductQueueProcessor {
   constructor(
     // @InjectRepository(ProductStat)
     // private productStatRepository: Repository<ProductStat>,
-    // private productCacheService: ProductCacheService,
+    private productCacheService: ProductCacheService,
+    private productStatsService: StatsService,
     @InjectLogger() private readonly logger:Logger
   ) {}
 
@@ -44,11 +46,11 @@ export class ProductQueueProcessor {
     
     try {
       // Initialize product stats
-   
+   await this.productStatsService.create(job.data)
       
       // Invalidate user and subcategory caches
-    //   await this.productCacheService.invalidateUserProducts(job.data.userId);
-    //   await this.productCacheService.invalidateSubCategoryProducts(job.data.subCategoryId);
+      await this.productCacheService.invalidateUserProducts(job.data.userId);
+      await this.productCacheService.invalidateSubCategoryProducts(job.data.subCategoryId);
       
       this.logger.log(`Product ${job.data.productId} stats initialized successfully`);
     } catch (error) {
@@ -126,11 +128,11 @@ export class ProductQueueProcessor {
     this.logger.log(`Invalidating cache for product ${job.data.productId}`);
     
     try {
-    //   await this.productCacheService.invalidateProductCaches(
-    //     job.data.productId,
-    //     job.data.userId,
-    //     job.data.subCategoryId,
-    //   );
+      // await this.productCacheService.invalidateProductCaches(
+      //   job.data.productId,
+      //   job.data.userId,
+      //   job.data.subCategoryId,
+      // );
       
       this.logger.log(`Cache invalidated for product ${job.data.productId}`);
     } catch (error) {

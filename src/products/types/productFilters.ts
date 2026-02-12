@@ -1,5 +1,5 @@
 export interface ProductFilters {
-  userId?: number;
+  userId?: string;
   subCategoryId?: number;
   targetedGender?: string;
   minPrice?: number;
