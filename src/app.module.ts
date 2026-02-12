@@ -45,6 +45,10 @@ import { PaymentsModule } from './payments/payments.module';
 import { ProductQueueProcessor } from "./bull/processors/productQueue";
 import { CachesModule } from "./products/caches/caches.module";
 import { StatsModule } from "./products/stats/stats.module";
+import { BoostQueueProcessor } from "./bull/processors/Boost.queue.processor";
+import { EventQueueProcessor } from "./bull/processors/Event.queue.processor";
+import { BoostsModule } from "./products/boosts/boosts.module";
+import { EventsModule } from "./products/events/events.module";
 /**
  * It is the root module for the application in we import all feature modules and configure modules and packages that are common in feature modules. Here we also configure the middlewares.
  *
@@ -119,7 +123,9 @@ import { StatsModule } from "./products/stats/stats.module";
     ReelsModule,
     ProductsModule,
     CartsModule,
+    BoostsModule,
     ReviewsModule,
+    EventsModule,
     WishlistsModule,
     OrdersModule,
     CachesModule,
@@ -138,6 +144,8 @@ import { StatsModule } from "./products/stats/stats.module";
     ProductQueueProcessor,
     PushNotificationProccessor,
     SeederService,
+    BoostQueueProcessor,
+    EventQueueProcessor
     // ProductBoostgService,
   ],
 })

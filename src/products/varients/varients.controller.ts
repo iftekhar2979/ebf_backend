@@ -94,15 +94,15 @@ export class VarientsController {
     return this.varientsService.findBySku(sku);
   }
 
-  @Patch(':id')
+  @Patch(':varientId')
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('varientId', ParseIntPipe) id: number,
     @Body() updateVariantDto: UpdateProductVariantDto,
   ) {
     return this.varientsService.update(id, updateVariantDto);
   }
 
-  @Delete(':id')
+  @Delete(':varientId')
   @HttpCode(HttpStatus.OK)
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.varientsService.remove(id);

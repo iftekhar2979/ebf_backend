@@ -40,7 +40,7 @@ export class ImagesService {
 
     try {
       // Validate product exists
-      const product = await this.productRepository.findOne({
+      const product = await queryRunner.manager.findOne(Product,{
         where: { id: productId },
       });
 
@@ -49,7 +49,7 @@ export class ImagesService {
       }
 
       // Check current image count
-      const currentImageCount = await this.imageRepository.count({
+      const currentImageCount = await queryRunner.manager.count(ProductImage,{
         where: { productId, deletedAt: null },
       });
 
@@ -98,7 +98,9 @@ export class ImagesService {
    * Find all images for a product
    */
   async findByProduct(productId: number) {
-    const product = await this.productRepository.findOne({
+    const queryRunner = this.dataSource.createQueryRunner()
+    await queryRunner.connect()
+    const product = await queryRunner.manager.findOne(Product,{
       where: { id: productId },
     });
 
@@ -106,7 +108,7 @@ export class ImagesService {
       throw new NotFoundException(`Product with ID ${productId} not found`);
     }
 
-    return this.imageRepository.find({
+    return queryRunner.manager.find(ProductImage,{
       where: { productId },
       order: { id: 'ASC' },
     });

@@ -16,6 +16,8 @@ import { ProductStat } from "src/products/stats/entities/product_stats.entity";
 import { ProductsModule } from "src/products/products.module";
 import { CachesModule } from "src/products/caches/caches.module";
 import { StatsModule } from "src/products/stats/stats.module";
+import { EventsModule } from "src/products/events/events.module";
+import { BoostsModule } from "src/products/boosts/boosts.module";
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { StatsModule } from "src/products/stats/stats.module";
     OtpModule,
     ProductsModule,
     CachesModule,
+    EventsModule,
+    BoostsModule,
     StatsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

@@ -68,17 +68,17 @@ export class ImagesController {
     return this.imagesService.findOne(id);
   }
 
-  @Patch(':id')
+  @Patch(':imageId')
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('imageId', ParseIntPipe) id: number,
     @Body() updateImageDto: CreateProductImageDto,
   ) {
     return this.imagesService.update(id, updateImageDto);
   }
 
-  @Delete(':id')
+  @Delete(':imageId')
   @HttpCode(HttpStatus.OK)
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('imageId', ParseIntPipe) id: number) {
     return this.imagesService.remove(id);
   }
 
