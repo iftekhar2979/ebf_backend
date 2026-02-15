@@ -62,7 +62,7 @@ export class StatsService {
       // Initialize Redis counters
       await this.initializeRedisCounters(dto.productId);
 
-      this.logger.info(`Stats initialized for product ${dto.productId}`);
+      console.log(`Stats initialized for product ${dto.productId}`);
     } catch (err) {
       this.logger.error(`Failed to create stats for product ${dto.productId}:`, err);
       throw err;
@@ -211,11 +211,11 @@ export class StatsService {
       }
 
       if (idsToSync.length === 0) {
-        this.logger.info('No products to sync');
+        console.log('No products to sync');
         return 0;
       }
 
-      this.logger.info(`Syncing stats for ${idsToSync.length} products`);
+      console.log(`Syncing stats for ${idsToSync.length} products`);
 
       let synced = 0;
 
@@ -234,10 +234,10 @@ export class StatsService {
           }),
         );
 
-        this.logger.info(`Synced batch ${i / this.SYNC_BATCH_SIZE + 1}: ${synced} products`);
+        console.log(`Synced batch ${i / this.SYNC_BATCH_SIZE + 1}: ${synced} products`);
       }
 
-      this.logger.info(`Sync complete: ${synced} products updated`);
+      console.log(`Sync complete: ${synced} products updated`);
       return synced;
     } catch (error) {
       this.logger.error('Failed to sync stats to database:', error);
@@ -295,7 +295,7 @@ export class StatsService {
    */
   @Cron(CronExpression.EVERY_30_MINUTES)
   async scheduledSync() {
-    this.logger.info('Starting scheduled stats sync');
+    console.log('Starting scheduled stats sync');
     await this.syncRedisToDatabase();
   }
 
@@ -394,7 +394,7 @@ export class StatsService {
 
     await pipeline.exec();
 
-    this.logger.info(`Batch incremented stats for ${updates.length} products`);
+    console.log(`Batch incremented stats for ${updates.length} products`);
   }
 
   /**
@@ -420,7 +420,7 @@ export class StatsService {
     // Invalidate cache
     await this.redisService.delCache(`stats:cached:${productId}`);
 
-    this.logger.info(`Stats reset for product ${productId}`);
+    console.log(`Stats reset for product ${productId}`);
   }
 
   /**

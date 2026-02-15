@@ -1,0 +1,196 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 23
+          cache: npm
+      
+      - run: npm ci
+      
+      - run: npm run build
+        env:
+          # Docker compose Configs
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+          POSTGRES_VOLUMES_PATH: ${{ secrets.POSTGRES_VOLUMES_PATH }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
+          NODE_ENV: ${{ secrets.NODE_ENV }}
+          PORT: ${{ secrets.PORT }}
+          
+          # Database Configurations
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DATABASE: ${{ secrets.DATABASE }}
+          
+          # JWT Configurations
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          EXPIRES_IN: ${{ secrets.EXPIRES_IN }}
+          
+          # HTTP Configurations
+          HTTP_ENABLE: ${{ secrets.HTTP_ENABLE }}
+          HTTP_HOST: ${{ secrets.HTTP_HOST }}
+          HTTP_PORT: ${{ secrets.HTTP_PORT }}
+          HTTP_VERSION: ${{ secrets.HTTP_VERSION }}
+          HTTP_VERSIONING_ENABLE: ${{ secrets.HTTP_VERSIONING_ENABLE }}
+          
+          # Debugger Configurations
+          DEBUGGER_HTTP_WRITE_INTO_FILE: ${{ secrets.DEBUGGER_HTTP_WRITE_INTO_FILE }}
+          DEBUGGER_HTTP_WRITE_INTO_CONSOLE: ${{ secrets.DEBUGGER_HTTP_WRITE_INTO_CONSOLE }}
+          DEBUGGER_SYSTEM_WRITE_INTO_FILE: ${{ secrets.DEBUGGER_SYSTEM_WRITE_INTO_FILE }}
+          DEBUGGER_SYSTEM_WRITE_INTO_CONSOLE: ${{ secrets.DEBUGGER_SYSTEM_WRITE_INTO_CONSOLE }}
+          
+          # Job Configuration
+          JOB_ENABLE: ${{ secrets.JOB_ENABLE }}
+          
+          # Email Configuration
+          EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+          EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+          
+          # Throttle Configuration
+          THROTTLE_TTL: ${{ secrets.THROTTLE_TTL }}
+          THROTTLE_LIMIT: ${{ secrets.THROTTLE_LIMIT }}
+          
+          # Google OAuth2.0
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          
+          # Front-End URL
+          FR_BASE_URL: ${{ secrets.FR_BASE_URL }}
+          
+          # AWS Configuration
+          AWS_ENDPOINT: ${{ secrets.AWS_ENDPOINT }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_PUBLIC_BUCKET_NAME: ${{ secrets.AWS_PUBLIC_BUCKET_NAME }}
+          
+          # Redis Configuration
+          REDIS_IP: ${{ secrets.REDIS_IP }}
+          
+          # Elasticsearch Configuration
+          ELASTICSEARCH_NODE: ${{ secrets.ELASTICSEARCH_NODE }}
+          ELASTICSEARCH_USERNAME: ${{ secrets.ELASTICSEARCH_USERNAME }}
+          ELASTICSEARCH_PASSWORD: ${{ secrets.ELASTICSEARCH_PASSWORD }}
+          
+          # Base URL and Stage
+          BASE_URL: ${{ secrets.BASE_URL }}
+          STAGE: ${{ secrets.STAGE }}
+          
+          # Stripe Configuration
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          WEBHOOK: ${{ secrets.WEBHOOK }}
+          
+          # Transglobal API
+          TRANSGLOBAL_API_KEY: ${{ secrets.TRANSGLOBAL_API_KEY }}
+          TRANSGLOBAL_API_PASSWORD: ${{ secrets.TRANSGLOBAL_API_PASSWORD }}
+          TRANSGLOBAL_API_ENDPOINTS: ${{ secrets.TRANSGLOBAL_API_ENDPOINTS }}
+          
+          # Gemini API
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+          GEMINI_TEMPERATURE: ${{ secrets.GEMINI_TEMPERATURE }}
+          GEMINI_MAX_TOKENS: ${{ secrets.GEMINI_MAX_TOKENS }}
+          
+          # Nginx Config
+          NGINX_HTTP_PORT: ${{ secrets.NGINX_HTTP_PORT }}
+          NGINX_HTTPS_PORT: ${{ secrets.NGINX_HTTPS_PORT }}
+          
+          # SendCloud API
+          SENDCLOUD_BASE_PANEL_URL: ${{ secrets.SENDCLOUD_BASE_PANEL_URL }}
+          SENDCLOUD_BASE_SERVICE_POINT_URL: ${{ secrets.SENDCLOUD_BASE_SERVICE_POINT_URL }}
+          SENDCLOUD_SECRET_KEY: ${{ secrets.SENDCLOUD_SECRET_KEY }}
+          SENDCLOUD_PUBLIC_KEY: ${{ secrets.SENDCLOUD_PUBLIC_KEY }}
+          
+          # SendGrid API
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          
+          # Firebase Configuration
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_PRIVATE_KEY_ID: ${{ secrets.FIREBASE_PRIVATE_KEY_ID }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          FIREBASE_CLIENT_ID: ${{ secrets.FIREBASE_CLIENT_ID }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_AUTH_URI: ${{ secrets.FIREBASE_AUTH_URI }}
+          FIREBASE_TOKEN_URI: ${{ secrets.FIREBASE_TOKEN_URI }}
+          FIREBASE_AUTH_PROVIDER_CERT_URL: ${{ secrets.FIREBASE_AUTH_PROVIDER_CERT_URL }}
+          FIREBASE_CLIENT_CERT_URL: ${{ secrets.FIREBASE_CLIENT_CERT_URL }}
+          FIREBASE_UNIVERSE_DOMAIN: ${{ secrets.FIREBASE_UNIVERSE_DOMAIN }}
+          
+          # Admin Configuration
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          ADMIN_FIRST_NAME: ${{ secrets.ADMIN_FIRST_NAME }}
+          ADMIN_LAST_NAME: ${{ secrets.ADMIN_LAST_NAME }}
+          
+          # Auth JWT Configuration
+          AUTH_JWT_ACCESS_TOKEN_SECRET_KEY: ${{ secrets.AUTH_JWT_ACCESS_TOKEN_SECRET_KEY }}
+          AUTH_JWT_REFRESH_TOKEN_SECRET_KEY: ${{ secrets.AUTH_JWT_REFRESH_TOKEN_SECRET_KEY }}
+          ACCESS_TOKEN_EXPIRATION: ${{ secrets.ACCESS_TOKEN_EXPIRATION }}
+          AUTH_JWT_ACCESS_TOKEN_EXPIRED: ${{ secrets.AUTH_JWT_ACCESS_TOKEN_EXPIRED }}
+          AUTH_JWT_REFRESH_TOKEN_EXPIRED: ${{ secrets.AUTH_JWT_REFRESH_TOKEN_EXPIRED }}
+          RECOVER_CODE_EXPIRATION: ${{ secrets.RECOVER_CODE_EXPIRATION }}
+          AUTH_JWT_ISSUER: ${{ secrets.AUTH_JWT_ISSUER }}
+          
+          # Meta Access Token
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          
+          # OpenAI API
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            # Source the bash profile to load NVM and Node.js
+            if [ -f ~/.bashrc ]; then
+              source ~/.bashrc
+            fi
+            
+            if [ -f ~/.bash_profile ]; then
+              source ~/.bash_profile
+            fi
+
+            # Navigate to project directory
+            cd ${{ secrets.PROJECT_PATH || '~/ebf-mart-backend' }}
+
+            # Pull latest code from repository
+            git pull origin main
+
+            # Install dependencies
+            npm install
+
+            # Build the project
+            npm run build
+
+            # Reload or start the application with PM2
+            pm2 reload ebf-mart-backend || pm2 start dist/server.js --name "ebf-mart-backend"
+
+            # Save PM2 configuration for auto-restart on server reboot
+            pm2 save
