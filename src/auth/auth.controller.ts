@@ -64,6 +64,26 @@ export class AuthController {
 
     @InjectQueue("notifications") private readonly _queue: Queue
   ) {}
+
+  @Post("signup")
+  @ApiOperation({
+    description: "Api to register new users.",
+    summary: "Api to register new users. It takes (first_name, last_name, email and password) as input",
+  })
+  @ApiCreatedResponse({
+    description: "The user is successfully created",
+    type: UserResponseDto,
+  })
+  async userSignup(@Body() createUserDto: CreateUserDto, @Req() req: Request) {
+    const { data, token } = await this._authService.signup(createUserDto, req);
+    return {
+      status: "success",
+      data,
+      token,
+    };
+  }
+  
+
   @Post("signup/shops")
   @ApiOperation({
     description: "Api to register new users.",
