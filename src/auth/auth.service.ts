@@ -234,14 +234,14 @@ return token
         );
 
         return {
-          status: "success",
+          ok:true,
           message: "OTP verified. You may now reset your password.",
           reset_token: resetToken,
         };
       }
 
       return {
-        status: "success",
+        ok:true,
         message: "Account verified successfully",
       };
     });
@@ -277,7 +277,7 @@ return token
     //     body: "Your password has been reset successfully",
     //   });
     // }
-    return { message: "Password reset successfully", status: "success", data: null };
+    return { message: "Password reset successfully", ok:true, data: null };
   }
   async updatePassword(resetPasswordDto: UpdatePassword, user) {
     const { passwordCurrent, password, passwordConfirm } = resetPasswordDto;
@@ -301,7 +301,7 @@ return token
     this._logger.log("Saving Updated User", AuthService.name);
     await this._userRepository.save(userinfo);
     this._mailService.sendPasswordUpdateEmail(userinfo);
-    return { message: "Password updated successfully", status: "success", data: null };
+    return { message: "Password updated successfully", ok:true, data: null };
   }
   async loginPassport(loginUserDto: LoginUserDto) {
     const { email, password } = loginUserDto;
@@ -470,7 +470,7 @@ return token
       // const otp = await this._otpService.createOtp(user.id, OtpType.FORGOT_PASSWORD);
       // await this._queue.add("mail_notification", { user, otp: otp.otp });
       const otp = await this._otpQueue.add("otp-creation", { user, otpType: OtpType.FORGOT_PASSWORD });
-      return { message: "OTP resent successfully", status: "success", data: null };
+      return { message: "OTP resent successfully", ok:true, data: null };
     }
 
     this._logger.log(`Resending OTP to user with ID: ${user.id}`, AuthService.name);
@@ -488,7 +488,7 @@ return token
 
     const otp = await this._otpService.createOtp(user.id, OtpType.FORGOT_PASSWORD);
     await this._mailService.sendForgotPasswordMail(user.email, `${otp.otp}`);
-    return { message: "OTP resent successfully", status: "success", data: null };
+    return { message: "OTP resent successfully", ok:true, data: null };
   }
 
   async forgetPassword(req: Request, email: string) {
@@ -499,7 +499,7 @@ return token
     }
     const token = await this._jwtService.sign({ id: user.id, verification_type: OtpType.FORGOT_PASSWORD });
     await this.resendOtp({ user });
-    return { message: "Forgot password email sent successfully", status: "success", data: null, token };
+    return { message: "Forgot password email sent successfully", ok:true, data: null, token };
   }
 
   async sendOtp(req: Request) {
@@ -513,14 +513,14 @@ return token
       await this._otpService.removeOtpByUserId(user.id); // Ensure to remove the existing OTP
     }
     await this._otpService.createOtp(user.id, OtpType.REGISTRATION);
-    return { message: "OTP resent successfully", status: "success", data: null };
+    return { message: "OTP resent successfully", ok:true, data: null };
   }
   async uploadImage({ imageUrl, user }: { imageUrl: string; user: User }) {
     const updateUser = await this._userRepository.update(user.id, { image: imageUrl });
     if (!updateUser) {
       throw new NotFoundException("User not found");
     }
-    return { message: "Image uploaded successfully", status: "success", data: null };
+    return { message: "Image uploaded successfully", ok:true, data: null };
   }
 
   async refreshToken(refreshTokenDto: RefreshTokenDto) {

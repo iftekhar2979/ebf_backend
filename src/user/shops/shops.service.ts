@@ -106,7 +106,7 @@ export class ShopsService {
 
       // Return success response (exclude sensitive data)
       return {
-        success: true,
+        ok: true,
         message: 'Shop registered successfully. Please verify your email.',
         data: {
           id: savedUser.id,

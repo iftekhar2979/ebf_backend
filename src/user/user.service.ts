@@ -78,7 +78,7 @@ export class UserService {
 
     return {
       message: "users retrived successfully",
-      status: "success",
+      ok:true,
       statusCode: 200,
       data: users,
       pagination: pagination({ page: Number(page), limit: Number(limit), total }),
@@ -204,7 +204,7 @@ export class UserService {
     }
 
     this._logger.log(`Image updated successfully`, UserService.name);
-    return { message: "Image uploaded successfully", status: "success", data: null };
+    return { message: "Image uploaded successfully", ok:true, data: null };
   }
   async updateUserUpdatedTimeAndOfflineStatus({ user_id }: { user_id: string; user?: Partial<User> }) {
     this._logger.log(`Updating user Active Status`, UserService.name);
