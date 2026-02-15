@@ -177,6 +177,26 @@ jobs:
               source ~/.bash_profile
             fi
 
+            # Check if NVM is installed, if not install it
+            if ! command -v nvm &> /dev/null; then
+              echo "NVM not found, installing..."
+              curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            fi
+
+            # Load NVM
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+            # Install and use Node.js 23
+            nvm install 23
+            nvm use 23
+
+            # Verify Node version
+            echo "Node version: $(node -v)"
+            echo "NPM version: $(npm -v)"
+
             # Navigate to project directory
             cd ebf_backend
 
@@ -186,10 +206,8 @@ jobs:
             # Reset to remote master (discard local changes)
             git reset --hard origin/master
 
-            # Clean untracked files (optional - remove if you want to keep local files)
+            # Clean untracked files
             git clean -fd
-
-           
 
             # Install dependencies
             npm install
