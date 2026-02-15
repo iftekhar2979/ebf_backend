@@ -180,8 +180,20 @@ jobs:
             # Navigate to project directory
             cd ebf_backend
 
-            # Pull latest code from repository
-            git pull origin main
+            # Fetch latest changes
+            git fetch origin master
+
+            # Reset to remote master (discard local changes)
+            git reset --hard origin/master
+
+            # Clean untracked files (optional - remove if you want to keep local files)
+            git clean -fd
+
+            # Install pnpm if not already installed
+            if ! command -v pnpm &> /dev/null; then
+              echo "pnpm not found, installing..."
+              npm install -g pnpm
+            fi
 
             # Install dependencies
             pnpm install
@@ -189,8 +201,17 @@ jobs:
             # Build the project
             pnpm run build
 
-            # Reload or start the application with PM2
-            pm2 reload ebf-mart-backend || pm2 start dist/src/main.js --name "ebf-mart-backend"
+            # Stop the existing PM2 process if it exists
+            pm2 stop ebf-mart-backend || true
+
+            # Delete the old process
+            pm2 delete ebf-mart-backend || true
+
+            # Start the application with PM2
+            pm2 start dist/src/main.js --name "ebf-mart-backend"
 
             # Save PM2 configuration for auto-restart on server reboot
             pm2 save
+
+            # Optional: Show PM2 status
+            pm2 status

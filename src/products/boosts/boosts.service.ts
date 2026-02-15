@@ -104,7 +104,7 @@ export class BoostsService {
       // Invalidate caches
       await this.invalidateBoostCaches(dto.productId);
 
-      this.logger.info(`Boost created for product ${dto.productId}`, {
+      console.log(`Boost created for product ${dto.productId}`, {
         boostId: savedBoost.id,
         boostScore: dto.boostScore,
       });
@@ -215,7 +215,7 @@ export class BoostsService {
     // Invalidate caches
     await this.invalidateBoostCaches(boost.productId);
 
-    this.logger.info(`Boost cancelled: ${boostId}`, { userId });
+    console.log(`Boost cancelled: ${boostId}`, { userId });
 
     return this.mapToResponse(updated);
   }
@@ -306,7 +306,7 @@ export class BoostsService {
 
     await this.invalidateBoostCaches(boost.productId);
 
-    this.logger.info(`Boost ${boostId} activated for product ${boost.productId}`);
+    console.log(`Boost ${boostId} activated for product ${boost.productId}`);
   }
 
   /**
@@ -333,7 +333,7 @@ export class BoostsService {
 
     await this.invalidateBoostCaches(boost.productId);
 
-    this.logger.info(`Boost ${boostId} expired for product ${boost.productId}`);
+    console.log(`Boost ${boostId} expired for product ${boost.productId}`);
   }
 
   /**
@@ -341,7 +341,7 @@ export class BoostsService {
    */
   @Cron(CronExpression.EVERY_HOUR)
   async handleExpiredBoosts() {
-    this.logger.info('Running expired boosts cleanup');
+    console.log('Running expired boosts cleanup');
 
     const expiredBoosts = await this.boostRepository.find({
       where: {
@@ -369,7 +369,7 @@ export class BoostsService {
       );
     }
 
-    this.logger.info(`Queued ${expiredBoosts.length} boosts for expiration`);
+    console.log(`Queued ${expiredBoosts.length} boosts for expiration`);
   }
 
   /**
