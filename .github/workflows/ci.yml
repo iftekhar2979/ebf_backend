@@ -189,17 +189,13 @@ jobs:
             # Clean untracked files (optional - remove if you want to keep local files)
             git clean -fd
 
-            # Install pnpm if not already installed
-            if ! command -v pnpm &> /dev/null; then
-              echo "pnpm not found, installing..."
-              npm install -g pnpm
-            fi
+           
 
             # Install dependencies
-            pnpm install
+            npm install
 
             # Build the project
-            pnpm run build
+            npm run build
 
             # Stop the existing PM2 process if it exists
             pm2 stop ebf-mart-backend || true
@@ -208,7 +204,7 @@ jobs:
             pm2 delete ebf-mart-backend || true
 
             # Start the application with PM2
-            pm2 start "pnpm run start:dev" --name "ebf-mart-backend"
+            pm2 start "npm run start:dev" --name "ebf-mart-backend"
 
             # Save PM2 configuration for auto-restart on server reboot
             pm2 save
