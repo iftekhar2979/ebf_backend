@@ -12,35 +12,6 @@ import { FROM_EMAIL } from "./constants";
 console.log(process.env.SENDGRID_API_KEY);
 @Module({
   imports: [
-    // MailerModule.forRootAsync({
-    //   imports: [ConfigModule],
-    //   inject: [ConfigService],
-    //   useFactory: (configService: ConfigService) => {
-    //     if (configService.get<string>("NODE_ENV") === "DEV") {
-    //       return {
-    //         transport: {
-    //           host: configService.get<string>("EMAIL_HOST"),
-    //           port: +configService.get<string>("EMAIL_PORT"),
-    //           auth: {
-    //             user: configService.get<string>("EMAIL_USERNAME"),
-    //             pass: configService.get<string>("EMAIL_PASSWORD"),
-    //           },
-    //         },
-    //         defaults: {
-    //           from: `'no-reply' <${FROM_EMAIL}>`,
-    //         },
-    //         template: {
-    //           dir: join(__dirname, "templates"),
-    //           adapter: new PugAdapter(), // NOTE: change to your preferable adapter
-    //           options: {
-    //             strict: true,
-    //           },
-    //         },
-    //       };
-    //     }
-    //   },
-    // }),
-
     MailerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -48,19 +19,19 @@ console.log(process.env.SENDGRID_API_KEY);
         if (configService.get<string>("NODE_ENV") === "DEV") {
           return {
             transport: {
-              host: "smtp.sendgrid.net",
-              port: 587,
+              host: configService.get<string>("EMAIL_HOST"),
+              port: +configService.get<string>("EMAIL_PORT"),
               auth: {
-                user: "apikey", // <-- must be exactly this
-                pass: configService.get("SENDGRID_API_KEY"), // <-- your API key
+                user: configService.get<string>("EMAIL_USERNAME"),
+                pass: configService.get<string>("EMAIL_PASSWORD"),
               },
             },
             defaults: {
-              from: '"Pet Attix" <support@petattix.com>',
+              from: `'no-reply' <${FROM_EMAIL}>`,
             },
             template: {
               dir: join(__dirname, "templates"),
-              adapter: new PugAdapter(),
+              adapter: new PugAdapter(), // NOTE: change to your preferable adapter
               options: {
                 strict: true,
               },
@@ -69,6 +40,35 @@ console.log(process.env.SENDGRID_API_KEY);
         }
       },
     }),
+
+    // MailerModule.forRootAsync({
+    //   imports: [ConfigModule],
+    //   inject: [ConfigService],
+    //   useFactory: (configService: ConfigService) => {
+    //     if (configService.get<string>("NODE_ENV") === "DEV") {
+    //       return {
+    //         transport: {
+    //           host: "smtp.sendgrid.net",
+    //           port: 587,
+    //           auth: {
+    //             user: "apikey", // <-- must be exactly this
+    //             pass: configService.get("SENDGRID_API_KEY"), // <-- your API key
+    //           },
+    //         },
+    //         defaults: {
+    //           from: '"Pet Attix" <support@petattix.com>',
+    //         },
+    //         template: {
+    //           dir: join(__dirname, "templates"),
+    //           adapter: new PugAdapter(),
+    //           options: {
+    //             strict: true,
+    //           },
+    //         },
+    //       };
+    //     }
+    //   },
+    // }),
   ],
   providers: [MailService],
   exports: [MailService],

@@ -178,19 +178,19 @@ jobs:
             fi
 
             # Navigate to project directory
-            cd ${{ secrets.PROJECT_PATH || '~/ebf-mart-backend' }}
+            cd ebf_backend
 
             # Pull latest code from repository
             git pull origin main
 
             # Install dependencies
-            npm install
+            pnpm install
 
             # Build the project
-            npm run build
+            pnpm run build
 
             # Reload or start the application with PM2
-            pm2 reload ebf-mart-backend || pm2 start dist/server.js --name "ebf-mart-backend"
+            pm2 reload ebf-mart-backend || pm2 start dist/src/main.js --name "ebf-mart-backend"
 
             # Save PM2 configuration for auto-restart on server reboot
             pm2 save
