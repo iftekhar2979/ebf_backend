@@ -270,8 +270,19 @@ export class ProductsService {
       .take(limit)
       .getManyAndCount();
 
+
+      const flattenedProducts = products.map(product => ({
+  id: product.id,
+  productName: product.productName,
+  // Since your join logic already limits this to 1 item, we just grab the first index
+  price: product.variants[0]?.price || null,
+  image: product.images[0]?.image || null,
+  shopName: product.user?.shopProfile?.name || null,
+  discountPercentage: product.discountPercentage,
+  reviews:4
+}));
     const result = {
-      data: products,
+      data: flattenedProducts,
       meta: {
         total,
         page,
