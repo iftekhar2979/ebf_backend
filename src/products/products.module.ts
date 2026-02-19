@@ -20,10 +20,14 @@ import { CachesModule } from './caches/caches.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
 import { BullModule } from '@nestjs/bull';
+import { ProductRankingsService } from './product_rankings/product_rankings.service';
+import { FeedsService } from './feeds/feeds.service';
+import { FeedsController } from './feeds/feeds.controller';
+import { ProductRankingsModule } from './product_rankings/product_rankings.module';
 
 @Module({
-  controllers: [ProductsController],
-  providers: [ProductsService,],
-  imports: [TypeOrmModule.forFeature([Product]),BullModule.registerQueue({name:'product-queue'}),CategoriesModule, SubCategoriesModule, ViewsModule, VarientsModule, SizesModule, ColorsModule, RanksModule, ImagesModule, BoostsModule, StatsModule, EventsModule, GlobalStatsModule, CachesModule]
+  controllers: [ProductsController, FeedsController],
+  providers: [ProductsService, ProductRankingsService, FeedsService,],
+  imports: [TypeOrmModule.forFeature([Product]),BullModule.registerQueue({name:'product-queue'}),CategoriesModule, SubCategoriesModule, ViewsModule, VarientsModule, SizesModule, ColorsModule, RanksModule, ImagesModule, BoostsModule, StatsModule, EventsModule, GlobalStatsModule, CachesModule, ProductRankingsModule]
 })
 export class ProductsModule {}

@@ -81,6 +81,58 @@ export class RedisService implements OnModuleInit {
    * @param value Value to store
    * @param options Redis SET options (NX, EX, etc.)
    */
+
+  async zadd(key:string, score:number, value:string): Promise<void> {
+    try {
+      await this.client.zAdd(key, { score, value });  
+    }catch (error) {
+      this._logger.error(`Failed to zAdd to key ${key}:`, error);
+      throw error;
+    } 
+  }
+
+  async zrange(key:string, start:number, stop:number): Promise<string[]> {
+    try {
+      return await this.client.zRange(key, start, stop);
+    }catch (error) {
+      this._logger.error(`Failed to zRange key ${key}:`, error);
+      throw error;
+    }
+  }
+
+ 
+    async zincrby(key:string, increment:number, value:string): Promise<void> {
+      try {
+        await this.client.zIncrBy(key, increment, value); 
+      }catch (error) {  
+        this._logger.error(`Failed to zIncrBy key ${key}:`, error);
+        throw error;
+      }}
+
+      async zdel(key:string, value:string): Promise<void> { 
+        try{
+          await this.client.zRem(key, value);
+        }catch(error) {
+          this._logger.error(`Failed to zRem from key ${key}:`, error);
+          throw error;
+        }
+      }
+
+      async zRemoveRangeByScore(key:string, min:number, max:number): Promise<void> {
+        try {
+          await this.client.zRemRangeByScore(key, min, max);  
+        }catch (error) {  
+          this._logger.error(`Failed to zRemRangeByScore key ${key}:`, error);
+          throw error;  
+        }}
+        async zRevRank(key:string, value:string): Promise<number | null> {
+          try {
+            return await this.client.zRevRank(key, value);
+          }catch (error) {
+            this._logger.error(`Failed to zRevRank key ${key}:`, error);
+            throw error;
+          }}
+          
   async setWithOptions(
     key: string, 
     value: string, 

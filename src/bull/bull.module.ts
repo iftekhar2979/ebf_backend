@@ -18,6 +18,7 @@ import { CachesModule } from "src/products/caches/caches.module";
 import { StatsModule } from "src/products/stats/stats.module";
 import { EventsModule } from "src/products/events/events.module";
 import { BoostsModule } from "src/products/boosts/boosts.module";
+import { ProductRankingsModule } from "src/products/product_rankings/product_rankings.module";
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { BoostsModule } from "src/products/boosts/boosts.module";
     EventsModule,
     BoostsModule,
     StatsModule,
+    ProductRankingsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
