@@ -1,22 +1,22 @@
-import { Module } from '@nestjs/common';
-import { BoostsController } from './boosts.controller';
-import { BoostsService } from './boosts.service';
-import { StatsModule } from '../stats/stats.module';
-import { ScheduleModule } from '@nestjs/schedule';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { BullModule } from '@nestjs/bull';
-import { ProductBoosting } from './entities/boosts.entity';
+import { BullModule } from "@nestjs/bull";
+import { Module } from "@nestjs/common";
+import { ScheduleModule } from "@nestjs/schedule";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { StatsModule } from "../stats/stats.module";
+import { BoostsController } from "./boosts.controller";
+import { BoostsService } from "./boosts.service";
+import { ProductBoosting } from "./entities/boosts.entity";
 
 @Module({
-   imports: [
+  imports: [
     TypeOrmModule.forFeature([ProductBoosting]),
     BullModule.registerQueue(
       {
-        name: 'boost-queue',
+        name: "boost-queue",
         defaultJobOptions: {
           attempts: 3,
           backoff: {
-            type: 'exponential',
+            type: "exponential",
             delay: 2000,
           },
           removeOnComplete: true,
@@ -24,8 +24,8 @@ import { ProductBoosting } from './entities/boosts.entity';
         },
       },
       {
-        name: 'product-queue',
-      },
+        name: "product-queue",
+      }
     ),
     ScheduleModule.forRoot(),
     // RedisModule,
