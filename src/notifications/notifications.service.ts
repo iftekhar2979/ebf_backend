@@ -4,9 +4,7 @@ import { pagination } from "src/shared/utils/pagination";
 import { User } from "src/user/entities/user.entity";
 import { UserRoles } from "src/user/enums/role.enum";
 import { Repository } from "typeorm";
-import {
-  NotificationRelated,
-} from "./entities/notifications.entity";
+import { NotificationRelated } from "./entities/notifications.entity";
 import { GetNotificationsResponse } from "./types/notification.response";
 
 @Injectable()
@@ -15,7 +13,6 @@ export class NotificationsService {
   //   @InjectRepository(Notifications)
   //   private readonly _notificationsRepository: Repository<Notifications>
   // ) {}
-
   // async createNotification({
   //   recepient_id,
   //   actor_id,
@@ -78,7 +75,6 @@ export class NotificationsService {
   //       isImportant: data.isImportant || false,
   //     });
   //   });
-
   //   // Insert all notifications in bulk (single transaction)
   //   return await this._notificationsRepository.save(notifications);
   // }
@@ -100,18 +96,14 @@ export class NotificationsService {
   //   const take = limit;
   //   // Start building the query
   //   const query = this._notificationsRepository.createQueryBuilder("notification");
-
   //   if (recepient_id) {
   //     query.where("notification.recepient_id = :recepient_id", { recepient_id });
   //   }
-
   //   if (notificationFor) {
   //     query.andWhere("notification.notificationFor = :notificationFor", { notificationFor });
   //   }
-
   //   // Apply pagination
   //   query.skip(skip).take(take).orderBy("notification.created_at", "DESC");
-
   //   // Fetch the notifications and total count
   //   const [notifications, total] = await query.getManyAndCount();
   //   const data = notifications.map((notification) => ({
@@ -127,7 +119,6 @@ export class NotificationsService {
   //     created_at: notification.created_at.toISOString(),
   //     updated_at: notification.updated_at.toISOString(),
   //   }));
-
   //   return {
   //     message: "Notifications retrieved successfully",
   //     statusCode: 200,

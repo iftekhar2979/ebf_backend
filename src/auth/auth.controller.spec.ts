@@ -117,7 +117,7 @@ describe("AuthController", () => {
 
   describe("logout", () => {
     it("should logout to user", async () => {
-      let result = await authController.logout();
+      const result = await authController.logout();
       expect(result).toEqual({ status: "success", token: null });
     });
   });

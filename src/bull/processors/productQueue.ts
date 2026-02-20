@@ -1,14 +1,11 @@
-import { Processor, Process, OnQueueError, OnQueueFailed } from '@nestjs/bull';
-import { Job } from 'bull';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ProductStat } from 'src/products/stats/entities/product_stats.entity';
-import { ProductCacheService } from 'src/products/caches/caches.service';
-import { InjectLogger } from 'src/shared/decorators/logger.decorator';
-import { Logger } from 'winston';
-import { StatsService } from 'src/products/stats/stats.service';
-import { RedisService } from 'src/redis/redis.service';
+import { OnQueueError, OnQueueFailed, Process, Processor } from "@nestjs/bull";
+import { Injectable } from "@nestjs/common";
+import { Job } from "bull";
+import { ProductCacheService } from "src/products/caches/caches.service";
+import { StatsService } from "src/products/stats/stats.service";
+import { RedisService } from "src/redis/redis.service";
+import { InjectLogger } from "src/shared/decorators/logger.decorator";
+import { Logger } from "winston";
 
 export interface ProductCreatedJob {
   productId: number;
@@ -52,19 +49,19 @@ export interface ImageProcessingJob {
   imageUrls: string[];
 }
 
-@Processor('product-queue')
+@Processor("product-queue")
 @Injectable()
 export class ProductQueueProcessor {
   constructor(
     private productCacheService: ProductCacheService,
     private productStatsService: StatsService,
     private readonly redisService: RedisService,
-    @InjectLogger() private readonly logger: Logger,
+    @InjectLogger() private readonly logger: Logger
   ) {}
 
-  @Process('product-created')
+  @Process("product-created")
   async handleProductCreated(job: Job<ProductCreatedJob>) {
-    this.logger.log(`Processing product-created job for product `,job.data.productId);
+    this.logger.log(`Processing product-created job for product `, job.data.productId);
 
     try {
       // Initialize product stats
@@ -74,14 +71,14 @@ export class ProductQueueProcessor {
       await this.productCacheService.invalidateUserProducts(job.data.userId);
       await this.productCacheService.invalidateSubCategoryProducts(job.data.subCategoryId);
 
-      this.logger.log(`Product ${job.data.productId} stats initialized successfully`,job.data.productId);
+      this.logger.log(`Product ${job.data.productId} stats initialized successfully`, job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to process product-created job: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('increment-views')
+  @Process("increment-views")
   async handleIncrementViews(job: Job<IncrementViewsJob>) {
     this.logger.debug(`Incrementing views for product ${job.data.productId}`);
 
@@ -98,7 +95,7 @@ export class ProductQueueProcessor {
     }
   }
 
-  @Process('increment-carts')
+  @Process("increment-carts")
   async handleIncrementCarts(job: Job<IncrementCartsJob>) {
     this.logger.debug(`Incrementing carts for product ${job.data.productId}`);
 
@@ -115,7 +112,7 @@ export class ProductQueueProcessor {
     }
   }
 
-  @Process('increment-orders')
+  @Process("increment-orders")
   async handleIncrementOrders(job: Job<IncrementOrdersJob>) {
     this.logger.info(`Incrementing orders for product ${job.data.productId}`);
 
@@ -132,14 +129,12 @@ export class ProductQueueProcessor {
     }
   }
 
-  @Process('sync-redis-stats-to-db')
+  @Process("sync-redis-stats-to-db")
   async handleSyncStats(job: Job<SyncRedisStatsJob>) {
-    this.logger.info('Syncing Redis stats to database');
+    this.logger.info("Syncing Redis stats to database");
 
     try {
-      const synced = await this.productStatsService.syncRedisToDatabase(
-        job.data.productIds,
-      );
+      const synced = await this.productStatsService.syncRedisToDatabase(job.data.productIds);
 
       this.logger.info(`Successfully synced ${synced} product stats`);
       return { synced };
@@ -149,9 +144,9 @@ export class ProductQueueProcessor {
     }
   }
 
-  @Process('update-product-stats')
+  @Process("update-product-stats")
   async handleStatsUpdate(job: Job<ProductStatsUpdateJob>) {
-    this.logger.log(`Updating stats for product ${job.data.productId}`,job.data.productId);
+    this.logger.log(`Updating stats for product ${job.data.productId}`, job.data.productId);
 
     try {
       const updates: any = {};
@@ -174,35 +169,31 @@ export class ProductQueueProcessor {
         });
       }
 
-      this.logger.log(`Stats updated for product `,job.data.productId);
+      this.logger.log(`Stats updated for product `, job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to update product stats: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('cache-warming')
+  @Process("cache-warming")
   async handleCacheWarming(job: Job<CacheWarmingJob>) {
-    this.logger.log(`Warming cache for ${job.data.productIds.length} products`,job.data.productIds.length);
+    this.logger.log(`Warming cache for ${job.data.productIds.length} products`, job.data.productIds.length);
 
     try {
       // Warm product stats cache
-      await Promise.all(
-        job.data.productIds.map(productId =>
-          this.productStatsService.getStats(productId),
-        ),
-      );
+      await Promise.all(job.data.productIds.map((productId) => this.productStatsService.getStats(productId)));
 
-      this.logger.log(`Cache warming completed for ${job.data.productIds.length} products`,"");
+      this.logger.log(`Cache warming completed for ${job.data.productIds.length} products`, "");
     } catch (error) {
       this.logger.error(`Failed to warm cache: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('process-images')
+  @Process("process-images")
   async handleImageProcessing(job: Job<ImageProcessingJob>) {
-    this.logger.log(`Processing images for product ${job.data.productId}`,"");
+    this.logger.log(`Processing images for product ${job.data.productId}`, "");
 
     try {
       // Here you can add image optimization, thumbnail generation, etc.
@@ -213,18 +204,16 @@ export class ProductQueueProcessor {
       // - Upload to CDN
       // - Update product with optimized URLs
 
-      this.logger.log(`Images processed for product ${job.data.productId}`,"");
+      this.logger.log(`Images processed for product ${job.data.productId}`, "");
     } catch (error) {
       this.logger.error(`Failed to process images: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('invalidate-cache')
-  async handleCacheInvalidation(
-    job: Job<{ productId: number; userId: string; subCategoryId: number }>,
-  ) {
-    this.logger.log(`Invalidating cache for product ${job.data.productId}`,"");
+  @Process("invalidate-cache")
+  async handleCacheInvalidation(job: Job<{ productId: number; userId: string; subCategoryId: number }>) {
+    this.logger.log(`Invalidating cache for product ${job.data.productId}`, "");
 
     try {
       // Invalidate product-specific caches
@@ -234,7 +223,7 @@ export class ProductQueueProcessor {
         this.redisService.delCache(`stats:cached:${job.data.productId}`),
       ]);
 
-      this.logger.log(`Cache invalidated for product ${job.data.productId}`,"");
+      this.logger.log(`Cache invalidated for product ${job.data.productId}`, "");
     } catch (error) {
       this.logger.error(`Failed to invalidate cache: ${error.message}`, error.stack);
       throw error;
@@ -243,7 +232,7 @@ export class ProductQueueProcessor {
 
   @OnQueueError()
   handleError(error: Error) {
-    this.logger.error('Product queue error:', error);
+    this.logger.error("Product queue error:", error);
   }
 
   @OnQueueFailed()

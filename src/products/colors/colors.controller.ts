@@ -10,14 +10,14 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
-} from '@nestjs/common';
-import { ColorsService } from './colors.service';
-import { CreateColorDto } from './dto/create-color.dto';
-import { UpdateColorDto } from './dto/update-color.dto';
-import { QueryColorDto } from './dto/query-color.dto';
-import { QueryVariantDto } from './dto/query-varient.dto';
+} from "@nestjs/common";
+import { ColorsService } from "./colors.service";
+import { CreateColorDto } from "./dto/create-color.dto";
+import { UpdateColorDto } from "./dto/update-color.dto";
+import { QueryColorDto } from "./dto/query-color.dto";
+import { QueryVariantDto } from "./dto/query-varient.dto";
 
-@Controller('colors')
+@Controller("colors")
 export class ColorsController {
   constructor(private readonly colorsService: ColorsService) {}
 
@@ -35,7 +35,7 @@ export class ColorsController {
    * Get all colors without pagination (for dropdowns)
    * GET /colors/all
    */
-  @Get('all')
+  @Get("all")
   findAllColors() {
     return this.colorsService.findAllColors();
   }
@@ -53,7 +53,7 @@ export class ColorsController {
    * Get all colors with variants count
    * GET /colors/with-count?page=1&limit=10
    */
-  @Get('with-count')
+  @Get("with-count")
   findAllWithCount(@Query() query: QueryColorDto) {
     return this.colorsService.findAllWithVariantCount(query);
   }
@@ -62,8 +62,8 @@ export class ColorsController {
    * Get a single color by ID
    * GET /colors/:id
    */
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  @Get(":id")
+  findOne(@Param("id", ParseIntPipe) id: number) {
     return this.colorsService.findOne(id);
   }
 
@@ -71,8 +71,8 @@ export class ColorsController {
    * Get a single color by ID with variants count
    * GET /colors/:id/with-count
    */
-  @Get(':id/with-count')
-  findOneWithCount(@Param('id', ParseIntPipe) id: number) {
+  @Get(":id/with-count")
+  findOneWithCount(@Param("id", ParseIntPipe) id: number) {
     return this.colorsService.findOneWithCount(id);
   }
 
@@ -80,11 +80,8 @@ export class ColorsController {
    * Get all product variants by color ID with pagination
    * GET /colors/:id/variants?page=1&limit=10
    */
-  @Get(':id/variants')
-  findVariantsByColorId(
-    @Param('id', ParseIntPipe) id: number,
-    @Query() query: QueryVariantDto,
-  ) {
+  @Get(":id/variants")
+  findVariantsByColorId(@Param("id", ParseIntPipe) id: number, @Query() query: QueryVariantDto) {
     return this.colorsService.findVariantsByColorId(id, query);
   }
 
@@ -92,11 +89,8 @@ export class ColorsController {
    * Update a color
    * PATCH /colors/:id
    */
-  @Patch(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateColorDto: UpdateColorDto,
-  ) {
+  @Patch(":id")
+  update(@Param("id", ParseIntPipe) id: number, @Body() updateColorDto: UpdateColorDto) {
     return this.colorsService.update(id, updateColorDto);
   }
 
@@ -104,9 +98,9 @@ export class ColorsController {
    * Delete a color
    * DELETE /colors/:id
    */
-  @Delete(':id')
+  @Delete(":id")
   @HttpCode(HttpStatus.OK)
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Param("id", ParseIntPipe) id: number) {
     return this.colorsService.remove(id);
   }
 }

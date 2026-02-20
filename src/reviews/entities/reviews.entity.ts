@@ -1,4 +1,4 @@
-import { User } from 'src/user/entities/user.entity';
+import { User } from "src/user/entities/user.entity";
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -7,40 +7,40 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('reviews')
+@Entity("reviews")
 export class Review {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   userId: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   shopId: number;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: "varchar" })
   title: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   description: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: "varchar", nullable: true })
   image: string;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: "timestamp" })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn({ type: "timestamp" })
   updatedAt: Date;
 
   // Relationships
   @ManyToOne(() => User, (user) => user.reviewsGiven)
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: "userId" })
   user: User;
 
   @ManyToOne(() => User, (user) => user.reviewsReceived)
-  @JoinColumn({ name: 'shopId' })
+  @JoinColumn({ name: "shopId" })
   shop: User;
 }

@@ -20,7 +20,7 @@ describe("AuthService", () => {
   let jwtService: JwtService;
   let mailService: MailService;
   let configService: ConfigService;
-  let req: any = {
+  const req: any = {
     get: jest.fn().mockReturnValue("https://www.google.com"),
     user: mockUser,
     protocol: "https",

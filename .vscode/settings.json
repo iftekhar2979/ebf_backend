@@ -1,0 +1,4 @@
+{
+    "typescript.tsserver.web.projectWideIntellisense.enabled": false,
+    "javascript.preferences.organizeImports": {}
+}

@@ -11,8 +11,8 @@ import { Verification } from "./entities/verification.entity";
 import { UserController } from "./user.controller";
 import { UserService } from "./user.service";
 import { UserAddressService } from "./userAddress.service";
-import { ShopsModule } from './shops/shops.module';
-import { ShippingInformationsModule } from './shipping_informations/shipping_informations.module';
+import { ShopsModule } from "./shops/shops.module";
+import { ShippingInformationsModule } from "./shipping_informations/shipping_informations.module";
 
 @Global()
 @Module({

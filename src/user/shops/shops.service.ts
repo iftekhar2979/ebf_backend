@@ -1,24 +1,28 @@
-import { BadRequestException, ConflictException, Injectable, InternalServerErrorException } from '@nestjs/common';
-import { User, USER_STATUS } from '../entities/user.entity';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
-import { ShopProfile } from './entities/shop.entity';
-import { ShopAddress } from './address/entities/address.entity';
-import { argon2hash } from 'src/utils/hashes/argon2';
-import { UserRoles } from '../enums/role.enum';
-import { ShopSignupDto } from './dtos/Signup.dto';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+} from "@nestjs/common";
+import { User, USER_STATUS } from "../entities/user.entity";
+import { InjectRepository } from "@nestjs/typeorm";
+import { DataSource, Repository } from "typeorm";
+import { ShopProfile } from "./entities/shop.entity";
+import { ShopAddress } from "./address/entities/address.entity";
+import { argon2hash } from "src/utils/hashes/argon2";
+import { UserRoles } from "../enums/role.enum";
+import { ShopSignupDto } from "./dtos/Signup.dto";
 
 @Injectable()
 export class ShopsService {
-
-     constructor(
+  constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(ShopProfile)
     private readonly shopProfileRepository: Repository<ShopProfile>,
     @InjectRepository(ShopAddress)
     private readonly shopAddressRepository: Repository<ShopAddress>,
-    private readonly dataSource: DataSource,
+    private readonly dataSource: DataSource
   ) {}
 
   async signup(signupDto: ShopSignupDto) {
@@ -34,7 +38,7 @@ export class ShopsService {
       });
 
       if (existingUser) {
-        throw new ConflictException('User with this email already exists');
+        throw new ConflictException("User with this email already exists");
       }
 
       // 2. Check if phone number already exists
@@ -43,12 +47,12 @@ export class ShopsService {
       });
 
       if (existingPhone) {
-        throw new ConflictException('User with this phone number already exists');
+        throw new ConflictException("User with this phone number already exists");
       }
 
       // 3. Validate opening and closing time
       if (!this.validateTimeRange(signupDto.openingTime, signupDto.closingTime)) {
-        throw new BadRequestException('Closing time must be after opening time');
+        throw new BadRequestException("Closing time must be after opening time");
       }
 
       // 4. Hash the password
@@ -56,9 +60,9 @@ export class ShopsService {
       const hashedPassword = await argon2hash(signupDto.password);
 
       // 5. Split name into first_name and last_name
-      const nameParts = signupDto.name.trim().split(' ');
+      const nameParts = signupDto.name.trim().split(" ");
       const first_name = nameParts[0];
-      const last_name = nameParts.slice(1).join(' ') || nameParts[0];
+      const last_name = nameParts.slice(1).join(" ") || nameParts[0];
 
       // 6. Create User entity
       const user = queryRunner.manager.create(User, {
@@ -83,7 +87,7 @@ export class ShopsService {
         facebookLink: signupDto.facebookLink,
         instagramLink: signupDto.instagramLink,
         banner: signupDto.banner,
-        availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], // Default all days
+        availableDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], // Default all days
       });
 
       const savedShopProfile = await queryRunner.manager.save(ShopProfile, shopProfile);
@@ -107,7 +111,7 @@ export class ShopsService {
       // Return success response (exclude sensitive data)
       return {
         ok: true,
-        message: 'Shop registered successfully. Please verify your email.',
+        message: "Shop registered successfully. Please verify your email.",
         data: {
           id: savedUser.id,
           email: savedUser.email,
@@ -133,18 +137,13 @@ export class ShopsService {
       await queryRunner.rollbackTransaction();
 
       // Re-throw known exceptions
-      if (
-        error instanceof ConflictException ||
-        error instanceof BadRequestException
-      ) {
+      if (error instanceof ConflictException || error instanceof BadRequestException) {
         throw error;
       }
 
       // Log and throw generic error for unknown issues
-      console.error('Signup error:', error);
-      throw new InternalServerErrorException(
-        'An error occurred during registration. Please try again.',
-      );
+      console.error("Signup error:", error);
+      throw new InternalServerErrorException("An error occurred during registration. Please try again.");
     } finally {
       // Release the query runner
       await queryRunner.release();
@@ -155,8 +154,8 @@ export class ShopsService {
    * Validate that closing time is after opening time
    */
   private validateTimeRange(openingTime: string, closingTime: string): boolean {
-    const [openHour, openMinute] = openingTime.split(':').map(Number);
-    const [closeHour, closeMinute] = closingTime.split(':').map(Number);
+    const [openHour, openMinute] = openingTime.split(":").map(Number);
+    const [closeHour, closeMinute] = closingTime.split(":").map(Number);
 
     const openingMinutes = openHour * 60 + openMinute;
     const closingMinutes = closeHour * 60 + closeMinute;

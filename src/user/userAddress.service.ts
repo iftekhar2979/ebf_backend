@@ -34,5 +34,4 @@ export class UserAddressService {
   async findAll(): Promise<UserAddress[]> {
     return await this._userAddressRepository.find({ relations: ["user"] });
   }
-
 }

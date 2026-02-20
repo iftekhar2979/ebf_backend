@@ -1,17 +1,12 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
-import { SubCategory } from '../sub_categories/entities/sub_categories.entity';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { QueryCategoryDto } from './dto/query-category.dto';
-import { QuerySubCategoryDto } from './dto/query-subcategory.dto';
-import { Category } from './entities/categories.entity';
-import { UpdateCategoryDto } from './dto/update-category.dto';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, Like } from "typeorm";
+import { SubCategory } from "../sub_categories/entities/sub_categories.entity";
+import { CreateCategoryDto } from "./dto/create-category.dto";
+import { QueryCategoryDto } from "./dto/query-category.dto";
+import { QuerySubCategoryDto } from "./dto/query-subcategory.dto";
+import { Category } from "./entities/categories.entity";
+import { UpdateCategoryDto } from "./dto/update-category.dto";
 
 @Injectable()
 export class CategoriesService {
@@ -19,7 +14,7 @@ export class CategoriesService {
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
     @InjectRepository(SubCategory)
-    private readonly subCategoryRepository: Repository<SubCategory>,
+    private readonly subCategoryRepository: Repository<SubCategory>
   ) {}
 
   /**
@@ -32,16 +27,14 @@ export class CategoriesService {
     });
 
     if (existingCategory) {
-      throw new ConflictException(
-        `Category with name "${createCategoryDto.name}" already exists`,
-      );
+      throw new ConflictException(`Category with name "${createCategoryDto.name}" already exists`);
     }
 
     try {
       const category = this.categoryRepository.create(createCategoryDto);
       return await this.categoryRepository.save(category);
     } catch (error) {
-      throw new BadRequestException('Failed to create category');
+      throw new BadRequestException("Failed to create category");
     }
   }
 
@@ -68,7 +61,7 @@ export class CategoriesService {
       where: whereCondition,
       take: limit,
       skip: skip,
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
 
     return {
@@ -116,10 +109,7 @@ export class CategoriesService {
   /**
    * Get all subcategories by category ID with pagination
    */
-  async findSubCategoriesByCategoryId(
-    categoryId: number,
-    query: QuerySubCategoryDto,
-  ) {
+  async findSubCategoriesByCategoryId(categoryId: number, query: QuerySubCategoryDto) {
     const { page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
 
@@ -128,10 +118,10 @@ export class CategoriesService {
 
     const [data, total] = await this.subCategoryRepository.findAndCount({
       where: { category: { id: categoryId } },
-      relations: ['category'],
+      relations: ["category"],
       take: limit,
       skip: skip,
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
 
     return {
@@ -153,10 +143,7 @@ export class CategoriesService {
   /**
    * Update a category
    */
-  async update(
-    id: number,
-    updateCategoryDto: UpdateCategoryDto,
-  ): Promise<Category> {
+  async update(id: number, updateCategoryDto: UpdateCategoryDto): Promise<Category> {
     const category = await this.findOne(id);
 
     // If name is being updated, check for duplicates
@@ -166,9 +153,7 @@ export class CategoriesService {
       });
 
       if (existingCategory) {
-        throw new ConflictException(
-          `Category with name "${updateCategoryDto.name}" already exists`,
-        );
+        throw new ConflictException(`Category with name "${updateCategoryDto.name}" already exists`);
       }
     }
 
@@ -177,7 +162,7 @@ export class CategoriesService {
     try {
       return await this.categoryRepository.save(category);
     } catch (error) {
-      throw new BadRequestException('Failed to update category');
+      throw new BadRequestException("Failed to update category");
     }
   }
 
@@ -194,7 +179,7 @@ export class CategoriesService {
 
     if (subCategoryCount > 0) {
       throw new BadRequestException(
-        `Cannot delete category. It has ${subCategoryCount} associated subcategory(ies)`,
+        `Cannot delete category. It has ${subCategoryCount} associated subcategory(ies)`
       );
     }
 
@@ -220,7 +205,7 @@ export class CategoriesService {
           ...category,
           subCategoriesCount: subCategoryCount,
         };
-      }),
+      })
     );
 
     return {

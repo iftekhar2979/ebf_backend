@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { RedisService } from 'src/redis/redis.service';
-import { randomUUID } from 'crypto';
+import { Injectable } from "@nestjs/common";
+import { RedisService } from "src/redis/redis.service";
+import { randomUUID } from "crypto";
 
 @Injectable()
 export class ProductCacheService {
@@ -12,14 +12,14 @@ export class ProductCacheService {
   constructor(private readonly redisService: RedisService) {}
 
   // ========== Cache Key Generators ==========
-  
+
   private getProductKey(productId: number): string {
     return `product:${productId}`;
   }
 
   private getProductListKey(filters: any): string {
     const filterStr = JSON.stringify(filters);
-    return `product:list:${Buffer.from(filterStr).toString('base64')}`;
+    return `product:list:${Buffer.from(filterStr).toString("base64")}`;
   }
 
   private getProductStatsKey(productId: number): string {
@@ -44,30 +44,19 @@ export class ProductCacheService {
    * Acquire a distributed lock
    * @returns token if lock acquired, null otherwise
    */
-  async acquireLock(
-    key: string,
-    ttlSeconds = 5
-  ): Promise<string | null> {
+  async acquireLock(key: string, ttlSeconds = 5): Promise<string | null> {
     const token = randomUUID();
     const lockKey = this.getLockKey(key);
-    
-    const acquired = await this.redisService.acquireLock(
-      lockKey,
-      token,
-      ttlSeconds
-    );
-    
+
+    const acquired = await this.redisService.acquireLock(lockKey, token, ttlSeconds);
+
     return acquired ? token : null;
   }
 
   /**
    * Wait until lock is released
    */
-  async waitUntilLock(
-    key: string,
-    retryDelay = 100,
-    maxRetries = 10
-  ): Promise<boolean> {
+  async waitUntilLock(key: string, retryDelay = 100, maxRetries = 10): Promise<boolean> {
     const lockKey = this.getLockKey(key);
     return await this.redisService.waitForLock(lockKey, retryDelay, maxRetries);
   }
@@ -103,8 +92,8 @@ export class ProductCacheService {
 
   async getProductList(filters: any): Promise<any> {
     const key = this.getProductListKey(filters);
-    console.log('Getting product list:', key);
-    
+    console.log("Getting product list:", key);
+
     const value = await this.redisService.get(key);
     return value ? JSON.parse(value) : null;
   }
@@ -112,9 +101,9 @@ export class ProductCacheService {
   async setProductList(filters: any, products: any): Promise<void> {
     const key = this.getProductListKey(filters);
     const list = await this.getProductList(filters);
-    
-    console.log('Existing list:', list, 'Filters:', filters);
-    
+
+    console.log("Existing list:", list, "Filters:", filters);
+
     const value = JSON.stringify(products);
     await this.redisService.setEx(key, value, this.PRODUCT_LIST_TTL);
   }
@@ -138,11 +127,7 @@ export class ProductCacheService {
   /**
    * Invalidate all caches related to a product
    */
-  async invalidateProductCaches(
-    productId: number,
-    userId: string,
-    subCategoryId: number
-  ): Promise<void> {
+  async invalidateProductCaches(productId: number, userId: string, subCategoryId: number): Promise<void> {
     const keysToDelete = [
       this.getProductKey(productId),
       this.getProductStatsKey(productId),
@@ -151,7 +136,7 @@ export class ProductCacheService {
     ];
 
     await this.redisService.del(...keysToDelete);
-    
+
     // Invalidate all product lists
     await this.invalidateProductLists();
   }
@@ -160,7 +145,7 @@ export class ProductCacheService {
    * Invalidate all product list caches using pattern matching
    */
   async invalidateProductLists(): Promise<void> {
-    const pattern = 'product:list:*';
+    const pattern = "product:list:*";
     await this.redisService.deleteByPatternSafe(pattern);
   }
 
@@ -185,36 +170,27 @@ export class ProductCacheService {
   /**
    * Cache multiple products at once
    */
-  async setMultipleProducts(
-    products: Array<{ id: number; data: any }>
-  ): Promise<void> {
-    await Promise.all(
-      products.map(({ id, data }) => this.setProduct(id, data))
-    );
+  async setMultipleProducts(products: Array<{ id: number; data: any }>): Promise<void> {
+    await Promise.all(products.map(({ id, data }) => this.setProduct(id, data)));
   }
 
   /**
    * Delete multiple products at once
    */
   async deleteMultipleProducts(productIds: number[]): Promise<void> {
-    const keys = productIds.map(id => this.getProductKey(id));
+    const keys = productIds.map((id) => this.getProductKey(id));
     await this.redisService.del(...keys);
   }
 
   /**
    * Warm the cache with product data
    */
-  async warmCache(
-    productIds: number[],
-    productData: any[]
-  ): Promise<void> {
+  async warmCache(productIds: number[], productData: any[]): Promise<void> {
     if (productIds.length !== productData.length) {
-      throw new Error('Product IDs and data arrays must have the same length');
+      throw new Error("Product IDs and data arrays must have the same length");
     }
 
-    await Promise.all(
-      productIds.map((id, index) => this.setProduct(id, productData[index]))
-    );
+    await Promise.all(productIds.map((id, index) => this.setProduct(id, productData[index])));
   }
 
   // ========== Cache-Aside Pattern Helper ==========
@@ -223,10 +199,7 @@ export class ProductCacheService {
    * Get product with cache-aside pattern
    * If not in cache, fetches from DB and caches it
    */
-  async getProductWithFallback(
-    productId: number,
-    fetchFromDb: () => Promise<any>
-  ): Promise<any> {
+  async getProductWithFallback(productId: number, fetchFromDb: () => Promise<any>): Promise<any> {
     // Try cache first
     const cached = await this.getProduct(productId);
     if (cached) {
@@ -240,7 +213,7 @@ export class ProductCacheService {
     if (!token) {
       // Another process is fetching, wait for it
       await this.waitUntilLock(lockKey, 100, 20);
-      
+
       // Try cache again
       const cachedAfterWait = await this.getProduct(productId);
       if (cachedAfterWait) {
@@ -251,12 +224,12 @@ export class ProductCacheService {
     try {
       // Fetch from DB
       const product = await fetchFromDb();
-      
+
       if (product) {
         // Cache the result
         await this.setProduct(productId, product);
       }
-      
+
       return product;
     } finally {
       // Release lock
@@ -269,10 +242,7 @@ export class ProductCacheService {
   /**
    * Get product list with cache-aside pattern
    */
-  async getProductListWithFallback(
-    filters: any,
-    fetchFromDb: () => Promise<any>
-  ): Promise<any> {
+  async getProductListWithFallback(filters: any, fetchFromDb: () => Promise<any>): Promise<any> {
     // Try cache first
     const cached = await this.getProductList(filters);
     if (cached) {
@@ -293,11 +263,11 @@ export class ProductCacheService {
 
     try {
       const products = await fetchFromDb();
-      
+
       if (products) {
         await this.setProductList(filters, products);
       }
-      
+
       return products;
     } finally {
       if (token) {

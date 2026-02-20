@@ -1,6 +1,6 @@
-import { Cart } from 'src/carts/entities/carts.entity';
-import { Product } from 'src/products/entities/product.entity';
-import { ProductVariant } from 'src/products/varients/entities/varients.entity';
+import { Cart } from "src/carts/entities/carts.entity";
+import { Product } from "src/products/entities/product.entity";
+import { ProductVariant } from "src/products/varients/entities/varients.entity";
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -9,47 +9,47 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('cart_items')
+@Entity("cart_items")
 export class CartItem {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   cartId: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   productId: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   productVarientId: number;
 
-  @Column({ type: 'int', default: 1 })
+  @Column({ type: "int", default: 1 })
   quanity: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({ type: "decimal", precision: 10, scale: 2 })
   price: number;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: "varchar", nullable: true })
   sku: string;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: "timestamp" })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn({ type: "timestamp" })
   updatedAt: Date;
 
   // Relationships
   @ManyToOne(() => Cart, (cart) => cart.cartItems)
-  @JoinColumn({ name: 'cartId' })
+  @JoinColumn({ name: "cartId" })
   cart: Cart;
 
   @ManyToOne(() => Product, (product) => product.cartItems)
-  @JoinColumn({ name: 'productId' })
+  @JoinColumn({ name: "productId" })
   product: Product;
 
   @ManyToOne(() => ProductVariant, (variant) => variant.cartItems)
-  @JoinColumn({ name: 'productVarientId' })
+  @JoinColumn({ name: "productVarientId" })
   productVariant: ProductVariant;
 }

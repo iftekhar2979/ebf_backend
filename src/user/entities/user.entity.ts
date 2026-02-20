@@ -33,11 +33,11 @@ export enum USER_STATUS {
   NOT_VERIFIED = "not_verified",
 }
 @Entity({ name: "users" })
-@Index('Filter_With_Roles_And_Status', ['roles', 'status'])
-@Index('Status_and_Deleted', ['status', 'deletedAt'])
-@Index(['email', 'id'], { unique: true })
+@Index("Filter_With_Roles_And_Status", ["roles", "status"])
+@Index("Status_and_Deleted", ["status", "deletedAt"])
+@Index(["email", "id"], { unique: true })
 export class User {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   @ApiProperty()
   id: string;
 
@@ -136,10 +136,7 @@ export class User {
   @OneToMany(() => Notification, (notification) => notification.recipient)
   notifications: Notification[];
 
-  @ManyToMany(
-    () => ConversationParticipant,
-    (participant) => participant.user,
-  )
+  @ManyToMany(() => ConversationParticipant, (participant) => participant.user)
   conversationParticipants: ConversationParticipant[];
 
   // @OneToMany(() => Message, (message) => message.sender)

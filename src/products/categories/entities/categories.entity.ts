@@ -1,4 +1,4 @@
-import { SubCategory } from 'src/products/sub_categories/entities/sub_categories.entity';
+import { SubCategory } from "src/products/sub_categories/entities/sub_categories.entity";
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -6,23 +6,23 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('categories')
+@Entity("categories")
 export class Category {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: "varchar" })
   name: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   description: string;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: "timestamp" })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn({ type: "timestamp" })
   updatedAt: Date;
 
   // Relationships

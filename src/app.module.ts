@@ -31,24 +31,25 @@ import { PushNotificationProccessor } from "./bull/processors/pushNotificationQu
 import { FirebaseModule } from "./firebase/firebase.module";
 import { GeminiModule } from "./gemini/gemini.module";
 import { NotificationsModule } from "./notifications/notifications.module";
+import { ProductsModule } from "./products/products.module";
+import { ReelsModule } from "./reels/reels.module";
 import { SeederService } from "./seeder/seeder.service";
 import { SettingsModule } from "./settings/settings.module";
 import { SocketModule } from "./socket/socket.module";
-import { ReelsModule } from './reels/reels.module';
-import { ProductsModule } from './products/products.module';
 
-import { CartsModule } from './carts/carts.module';
-import { ReviewsModule } from './reviews/reviews.module';
-import { WishlistsModule } from './wishlists/wishlists.module';
-import { OrdersModule } from './orders/orders.module';
-import { PaymentsModule } from './payments/payments.module';
-import { ProductQueueProcessor } from "./bull/processors/productQueue";
-import { CachesModule } from "./products/caches/caches.module";
-import { StatsModule } from "./products/stats/stats.module";
 import { BoostQueueProcessor } from "./bull/processors/Boost.queue.processor";
 import { EventQueueProcessor } from "./bull/processors/Event.queue.processor";
+import { ProductQueueProcessor } from "./bull/processors/productQueue";
+import { CartsModule } from "./carts/carts.module";
+import { OrdersModule } from "./orders/orders.module";
+import { PaymentsModule } from "./payments/payments.module";
 import { BoostsModule } from "./products/boosts/boosts.module";
+import { CachesModule } from "./products/caches/caches.module";
 import { EventsModule } from "./products/events/events.module";
+import { FeedModule } from "./products/feed/feed.module";
+import { StatsModule } from "./products/stats/stats.module";
+import { ReviewsModule } from "./reviews/reviews.module";
+import { WishlistsModule } from "./wishlists/wishlists.module";
 /**
  * It is the root module for the application in we import all feature modules and configure modules and packages that are common in feature modules. Here we also configure the middlewares.
  *
@@ -131,6 +132,7 @@ import { EventsModule } from "./products/events/events.module";
     CachesModule,
     StatsModule,
     PaymentsModule,
+    FeedModule,
   ],
   controllers: [AppController],
   providers: [
@@ -145,8 +147,8 @@ import { EventsModule } from "./products/events/events.module";
     PushNotificationProccessor,
     SeederService,
     BoostQueueProcessor,
-    EventQueueProcessor
-    // ProductBoostgService,
+    EventQueueProcessor,
+    // ProductBoostgSer,vice,
   ],
 })
 export class AppModule implements NestModule {

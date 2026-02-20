@@ -1,10 +1,10 @@
-import { Processor, Process, OnQueueError, OnQueueFailed } from '@nestjs/bull';
-import { Job } from 'bull';
-import { Injectable } from '@nestjs/common';
-import { InjectLogger } from 'src/shared/decorators/logger.decorator';
-import { Logger } from 'winston';
-import { StatsService } from 'src/products/stats/stats.service';
-import { BoostsService } from 'src/products/boosts/boosts.service';
+import { Processor, Process, OnQueueError, OnQueueFailed } from "@nestjs/bull";
+import { Job } from "bull";
+import { Injectable } from "@nestjs/common";
+import { InjectLogger } from "src/shared/decorators/logger.decorator";
+import { Logger } from "winston";
+import { StatsService } from "src/products/stats/stats.service";
+import { BoostsService } from "src/products/boosts/boosts.service";
 
 export interface ActivateBoostJob {
   boostId: number;
@@ -20,7 +20,7 @@ export interface ExpireBoostJob {
 export interface UpdateBoostStatsJob {
   productId: number;
   boostScore: number;
-  action: 'add' | 'remove';
+  action: "add" | "remove";
 }
 
 export interface LogBoostCancellationJob {
@@ -29,16 +29,16 @@ export interface LogBoostCancellationJob {
   reason: string;
 }
 
-@Processor('boost-queue')
+@Processor("boost-queue")
 @Injectable()
 export class BoostQueueProcessor {
   constructor(
     private readonly boostsService: BoostsService,
     private readonly statsService: StatsService,
-    @InjectLogger() private readonly logger: Logger,
+    @InjectLogger() private readonly logger: Logger
   ) {}
 
-  @Process('activate-boost')
+  @Process("activate-boost")
   async handleActivateBoost(job: Job<ActivateBoostJob>) {
     this.logger.info(`Activating boost ${job.data.boostId} for product ${job.data.productId}`);
 
@@ -52,7 +52,7 @@ export class BoostQueueProcessor {
     }
   }
 
-  @Process('expire-boost')
+  @Process("expire-boost")
   async handleExpireBoost(job: Job<ExpireBoostJob>) {
     this.logger.info(`Expiring boost ${job.data.boostId} for product ${job.data.productId}`);
 
@@ -66,14 +66,12 @@ export class BoostQueueProcessor {
     }
   }
 
-  @Process('update-boost-stats')
+  @Process("update-boost-stats")
   async handleUpdateBoostStats(job: Job<UpdateBoostStatsJob>) {
     this.logger.info(`Updating boost stats for product ${job.data.productId}`);
 
     try {
-      const boostScore = job.data.action === 'add' 
-        ? job.data.boostScore 
-        : -job.data.boostScore;
+      const boostScore = job.data.action === "add" ? job.data.boostScore : -job.data.boostScore;
 
       await this.statsService.incrementStats({
         productId: job.data.productId,
@@ -87,7 +85,7 @@ export class BoostQueueProcessor {
     }
   }
 
-  @Process('log-boost-cancellation')
+  @Process("log-boost-cancellation")
   async handleLogCancellation(job: Job<LogBoostCancellationJob>) {
     this.logger.info(`Logging boost cancellation`, {
       boostId: job.data.boostId,
@@ -111,7 +109,7 @@ export class BoostQueueProcessor {
 
   @OnQueueError()
   handleError(error: Error) {
-    this.logger.error('Boost queue error:', error);
+    this.logger.error("Boost queue error:", error);
   }
 
   @OnQueueFailed()

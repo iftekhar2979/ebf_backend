@@ -77,12 +77,11 @@ export class AuthController {
   async userSignup(@Body() createUserDto: CreateUserDto, @Req() req: Request) {
     const { data, token } = await this._authService.signup(createUserDto, req);
     return {
-      ok:true,
+      ok: true,
       data,
       token,
     };
   }
-  
 
   @Post("signup/shops")
   @ApiOperation({
@@ -95,10 +94,10 @@ export class AuthController {
   })
   @ApiConflictResponse({ description: "In case of email already exists in the database" })
   async signup(@Body() signup: ShopSignupDto, @Req() req: Request) {
-    const { data } = await this._userService.signUpShops(signup)
-const token = await this._authService.otpSending(data)
+    const { data } = await this._userService.signUpShops(signup);
+    const token = await this._authService.otpSending(data);
     return {
-      ok:true,
+      ok: true,
       data,
       token,
     };
@@ -263,7 +262,7 @@ const token = await this._authService.otpSending(data)
       user
     );
 
-    return { ok:true, user: updatedUser, token: newToken };
+    return { ok: true, user: updatedUser, token: newToken };
   }
 
   @Delete("delete-me")
@@ -280,8 +279,7 @@ const token = await this._authService.otpSending(data)
     const isDeleted: boolean = await this._authService.deleteMyAccount();
 
     if (isDeleted) {
-      return { ok:true, message: "User Deleted Successfully" };
+      return { ok: true, message: "User Deleted Successfully" };
     }
   }
-
 }

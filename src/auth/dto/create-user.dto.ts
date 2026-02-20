@@ -7,7 +7,7 @@ import {
   IsString,
   Matches,
   MaxLength,
-  MinLength
+  MinLength,
 } from "class-validator";
 import { UserRoles } from "src/user/enums/role.enum";
 import { IsNotAdmin } from "../../shared/decorators/not-admin.decorator";

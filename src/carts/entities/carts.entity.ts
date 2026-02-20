@@ -1,49 +1,49 @@
-import { User } from 'src/user/entities/user.entity';
+import { User } from "src/user/entities/user.entity";
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
+  Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
-} from 'typeorm';
-import { CartItem } from '../cart_items/entities/cart_items.entity';
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
+import { CartItem } from "../cart_items/entities/cart_items.entity";
 
 export enum CartStatus {
-  CONVERTED = 'converted',
-  ACTIVE = 'active',
-  ABANDONED = 'abandonded',
+  CONVERTED = "converted",
+  ACTIVE = "active",
+  ABANDONED = "abandonded",
 }
 
-@Entity('carts')
+@Entity("carts")
 export class Cart {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   userId: number;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ type: "int", default: 0 })
   total: number;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: CartStatus,
     default: CartStatus.ACTIVE,
   })
   status: CartStatus;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: "timestamp" })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn({ type: "timestamp" })
   updatedAt: Date;
 
   // Relationships
   @ManyToOne(() => User, (user) => user.carts)
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: "userId" })
   user: User;
 
   @OneToMany(() => CartItem, (cartItem) => cartItem.cart)

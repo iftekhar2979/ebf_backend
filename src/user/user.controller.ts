@@ -49,7 +49,6 @@ export class UserController {
     private readonly _userAddressService: UserAddressService
   ) {}
 
- 
   @Get("all")
   @ApiOperation({ summary: "Get all users with role USER (paginated + searchable)" })
   @ApiQuery({ name: "page", required: false, example: 1 })
@@ -189,5 +188,4 @@ export class UserController {
   ) {
     return await this._userAddressService.createAddress(userInfo, dto);
   }
-  
 }

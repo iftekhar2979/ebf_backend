@@ -1,5 +1,5 @@
-import { Product } from 'src/products/entities/product.entity';
-import { User } from 'src/user/entities/user.entity';
+import { Product } from "src/products/entities/product.entity";
+import { User } from "src/user/entities/user.entity";
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -9,32 +9,32 @@ import {
   Index,
   ManyToOne,
   JoinColumn,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('wishlist')
-@Index('wishlists_popularity_tracking', ['productId', 'userId'])
+@Entity("wishlist")
+@Index("wishlists_popularity_tracking", ["productId", "userId"])
 export class Wishlist {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   userId: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   productId: number;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: "timestamp" })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn({ type: "timestamp" })
   updatedAt: Date;
 
   // Relationships
   @ManyToOne(() => User, (user) => user.wishlists)
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: "userId" })
   user: User;
 
   @ManyToOne(() => Product, (product) => product.wishlists)
-  @JoinColumn({ name: 'productId' })
+  @JoinColumn({ name: "productId" })
   product: Product;
 }

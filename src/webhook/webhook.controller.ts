@@ -94,8 +94,6 @@ export class WebhookController {
     }
   }
 
- 
-
   @Post("minio")
   async handleMinIOWebhook(@Body() event: WebhookEvent) {
     console.log("Received MinIO webhook event");

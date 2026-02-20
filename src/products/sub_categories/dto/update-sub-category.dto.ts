@@ -1,5 +1,5 @@
-import { IsString, IsOptional, MaxLength, IsInt, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsOptional, MaxLength, IsInt, Min } from "class-validator";
+import { Type } from "class-transformer";
 
 export class UpdateSubCategoryDto {
   @IsInt()

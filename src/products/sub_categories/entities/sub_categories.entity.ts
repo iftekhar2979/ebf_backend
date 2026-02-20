@@ -1,5 +1,5 @@
-import { Category } from 'src/products/categories/entities/categories.entity';
-import { Product } from 'src/products/entities/product.entity';
+import { Category } from "src/products/categories/entities/categories.entity";
+import { Product } from "src/products/entities/product.entity";
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -10,33 +10,33 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('sub_categories')
-@Index('fk_parent_category', ['categoryId'])
-@Index(['categoryId', 'name'], { unique: true })
+@Entity("sub_categories")
+@Index("fk_parent_category", ["categoryId"])
+@Index(["categoryId", "name"], { unique: true })
 export class SubCategory {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   categoryId: number;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: "varchar" })
   name: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   description: string;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: "timestamp" })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn({ type: "timestamp" })
   updatedAt: Date;
 
   // Relationships
   @ManyToOne(() => Category, (category) => category.subCategories)
-  @JoinColumn({ name: 'categoryId' })
+  @JoinColumn({ name: "categoryId" })
   category: Category;
 
   @OneToMany(() => Product, (product) => product.subCategory)

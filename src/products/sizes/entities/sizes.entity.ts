@@ -1,4 +1,4 @@
-import { ProductVariant } from 'src/products/varients/entities/varients.entity';
+import { ProductVariant } from "src/products/varients/entities/varients.entity";
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -6,23 +6,23 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('sizes')
+@Entity("sizes")
 export class Size {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: "varchar" })
   type: string;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: "varchar" })
   desc: string;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: "timestamp" })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn({ type: "timestamp" })
   updatedAt: Date;
 
   // Relationships

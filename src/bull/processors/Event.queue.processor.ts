@@ -1,10 +1,10 @@
-import { Processor, Process, OnQueueError, OnQueueFailed } from '@nestjs/bull';
-import { Job } from 'bull';
-import { Injectable } from '@nestjs/common';
-import { InjectLogger } from 'src/shared/decorators/logger.decorator';
-import { Logger } from 'winston';
-import { EventsService } from 'src/products/events/events.service';
-import { ProductEventType } from 'src/products/events/entities/events.entity';
+import { Processor, Process, OnQueueError, OnQueueFailed } from "@nestjs/bull";
+import { Job } from "bull";
+import { Injectable } from "@nestjs/common";
+import { InjectLogger } from "src/shared/decorators/logger.decorator";
+import { Logger } from "winston";
+import { EventsService } from "src/products/events/events.service";
+import { ProductEventType } from "src/products/events/entities/events.entity";
 
 export interface FlushEventBufferJob {
   eventType: ProductEventType;
@@ -24,15 +24,15 @@ export interface UpdateTrendingScoreJob {
   productId: number;
 }
 
-@Processor('event-queue')
+@Processor("event-queue")
 @Injectable()
 export class EventQueueProcessor {
   constructor(
     private readonly eventsService: EventsService,
-    @InjectLogger() private readonly logger: Logger,
+    @InjectLogger() private readonly logger: Logger
   ) {}
 
-  @Process('flush-event-buffer')
+  @Process("flush-event-buffer")
   async handleFlushBuffer(job: Job<FlushEventBufferJob>) {
     this.logger.debug(`Flushing ${job.data.eventType} event buffer`);
 
@@ -50,7 +50,7 @@ export class EventQueueProcessor {
     // }
   }
 
-  @Process('update-user-cart')
+  @Process("update-user-cart")
   async handleUpdateUserCart(job: Job<UpdateUserCartJob>) {
     this.logger.debug(`Updating cart cache for user ${job.data.userId}`);
 
@@ -66,7 +66,7 @@ export class EventQueueProcessor {
     }
   }
 
-  @Process('update-inventory')
+  @Process("update-inventory")
   async handleUpdateInventory(job: Job<UpdateInventoryJob>) {
     this.logger.info(`Updating inventory for product ${job.data.productId}`);
 
@@ -85,7 +85,7 @@ export class EventQueueProcessor {
     }
   }
 
-  @Process('update-trending-score')
+  @Process("update-trending-score")
   async handleUpdateTrendingScore(job: Job<UpdateTrendingScoreJob>) {
     this.logger.debug(`Updating trending score for product ${job.data.productId}`);
 
@@ -106,7 +106,7 @@ export class EventQueueProcessor {
 
   @OnQueueError()
   handleError(error: Error) {
-    this.logger.error('Event queue error:', error);
+    this.logger.error("Event queue error:", error);
   }
 
   @OnQueueFailed()

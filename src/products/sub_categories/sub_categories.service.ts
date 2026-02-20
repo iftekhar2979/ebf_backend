@@ -1,18 +1,13 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
-import { SubCategory } from './entities/sub_categories.entity';
-import { Category } from '../categories/entities/categories.entity';
-import { Product } from '../entities/product.entity';
-import { CreateSubCategoryDto } from './dto/create-sub-category.dto';
-import { QuerySubCategoryDto } from './dto/query-sub-category.dto';
-import { QueryProductDto } from './dto/query-product.dto';
-import { UpdateSubCategoryDto } from './dto/update-sub-category.dto';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, Like } from "typeorm";
+import { SubCategory } from "./entities/sub_categories.entity";
+import { Category } from "../categories/entities/categories.entity";
+import { Product } from "../entities/product.entity";
+import { CreateSubCategoryDto } from "./dto/create-sub-category.dto";
+import { QuerySubCategoryDto } from "./dto/query-sub-category.dto";
+import { QueryProductDto } from "./dto/query-product.dto";
+import { UpdateSubCategoryDto } from "./dto/update-sub-category.dto";
 
 @Injectable()
 export class SubCategoriesService {
@@ -22,15 +17,13 @@ export class SubCategoriesService {
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
     @InjectRepository(Product)
-    private readonly productRepository: Repository<Product>,
+    private readonly productRepository: Repository<Product>
   ) {}
 
   /**
    * Create a new subcategory
    */
-  async create(
-    createSubCategoryDto: CreateSubCategoryDto,
-  ): Promise<SubCategory> {
+  async create(createSubCategoryDto: CreateSubCategoryDto): Promise<SubCategory> {
     const { categoryId, name, description } = createSubCategoryDto;
 
     // Verify that the parent category exists
@@ -39,9 +32,7 @@ export class SubCategoriesService {
     });
 
     if (!category) {
-      throw new NotFoundException(
-        `Category with ID ${categoryId} not found`,
-      );
+      throw new NotFoundException(`Category with ID ${categoryId} not found`);
     }
 
     // Check if subcategory with same name already exists in this category
@@ -52,7 +43,7 @@ export class SubCategoriesService {
 
     if (existingSubCategory) {
       throw new ConflictException(
-        `Subcategory with name "${name}" already exists in category "${category.name}"`,
+        `Subcategory with name "${name}" already exists in category "${category.name}"`
       );
     }
 
@@ -65,7 +56,7 @@ export class SubCategoriesService {
 
       return await this.subCategoryRepository.save(subCategory);
     } catch (error) {
-      throw new BadRequestException('Failed to create subcategory');
+      throw new BadRequestException("Failed to create subcategory");
     }
   }
 
@@ -95,10 +86,10 @@ export class SubCategoriesService {
 
     const [data, total] = await this.subCategoryRepository.findAndCount({
       where: whereConditions,
-      relations: ['category'],
+      relations: ["category"],
       take: limit,
       skip: skip,
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
 
     return {
@@ -118,7 +109,7 @@ export class SubCategoriesService {
   async findOne(id: number): Promise<SubCategory> {
     const subCategory = await this.subCategoryRepository.findOne({
       where: { id },
-      relations: ['category'],
+      relations: ["category"],
     });
 
     if (!subCategory) {
@@ -147,10 +138,7 @@ export class SubCategoriesService {
   /**
    * Get all products by subcategory ID with pagination
    */
-  async findProductsBySubCategoryId(
-    subCategoryId: number,
-    query: QueryProductDto,
-  ) {
+  async findProductsBySubCategoryId(subCategoryId: number, query: QueryProductDto) {
     const { page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
 
@@ -159,7 +147,7 @@ export class SubCategoriesService {
 
     const [data, total] = await this.productRepository.findAndCount({
       where: { subCategory: { id: subCategoryId } },
-      relations: ['subCategory', 'subCategory.category'],
+      relations: ["subCategory", "subCategory.category"],
       take: limit,
       skip: skip,
     });
@@ -184,10 +172,7 @@ export class SubCategoriesService {
   /**
    * Update a subcategory
    */
-  async update(
-    id: number,
-    updateSubCategoryDto: UpdateSubCategoryDto,
-  ): Promise<SubCategory> {
+  async update(id: number, updateSubCategoryDto: UpdateSubCategoryDto): Promise<SubCategory> {
     const subCategory = await this.findOne(id);
 
     const { categoryId, name, description } = updateSubCategoryDto;
@@ -199,9 +184,7 @@ export class SubCategoriesService {
       });
 
       if (!category) {
-        throw new NotFoundException(
-          `Category with ID ${categoryId} not found`,
-        );
+        throw new NotFoundException(`Category with ID ${categoryId} not found`);
       }
     }
 
@@ -211,10 +194,7 @@ export class SubCategoriesService {
       const targetName = name || subCategory.name;
 
       // Only check if name or categoryId is actually changing
-      if (
-        targetName !== subCategory.name ||
-        targetCategoryId !== subCategory.categoryId
-      ) {
+      if (targetName !== subCategory.name || targetCategoryId !== subCategory.categoryId) {
         const existingSubCategory = await this.subCategoryRepository.findOne({
           where: {
             categoryId: targetCategoryId,
@@ -224,7 +204,7 @@ export class SubCategoriesService {
 
         if (existingSubCategory && existingSubCategory.id !== id) {
           throw new ConflictException(
-            `Subcategory with name "${targetName}" already exists in this category`,
+            `Subcategory with name "${targetName}" already exists in this category`
           );
         }
       }
@@ -236,7 +216,7 @@ export class SubCategoriesService {
     try {
       return await this.subCategoryRepository.save(subCategory);
     } catch (error) {
-      throw new BadRequestException('Failed to update subcategory');
+      throw new BadRequestException("Failed to update subcategory");
     }
   }
 
@@ -253,7 +233,7 @@ export class SubCategoriesService {
 
     if (productCount > 0) {
       throw new BadRequestException(
-        `Cannot delete subcategory. It has ${productCount} associated product(s)`,
+        `Cannot delete subcategory. It has ${productCount} associated product(s)`
       );
     }
 
@@ -279,7 +259,7 @@ export class SubCategoriesService {
           ...subCategory,
           productsCount: productCount,
         };
-      }),
+      })
     );
 
     return {
@@ -298,14 +278,12 @@ export class SubCategoriesService {
     });
 
     if (!category) {
-      throw new NotFoundException(
-        `Category with ID ${categoryId} not found`,
-      );
+      throw new NotFoundException(`Category with ID ${categoryId} not found`);
     }
 
     return await this.subCategoryRepository.find({
       where: { categoryId },
-      order: { name: 'ASC' },
+      order: { name: "ASC" },
     });
   }
 }

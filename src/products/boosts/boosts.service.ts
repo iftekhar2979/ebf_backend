@@ -1,13 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, MoreThan } from 'typeorm';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
-import { RedisService } from 'src/redis/redis.service';
-import { InjectLogger } from 'src/shared/decorators/logger.decorator';
-import { Logger } from 'winston';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { BoostingStatus, ProductBoosting } from './entities/boosts.entity';
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, LessThan, MoreThan } from "typeorm";
+import { InjectQueue } from "@nestjs/bull";
+import { Queue } from "bull";
+import { RedisService } from "src/redis/redis.service";
+import { InjectLogger } from "src/shared/decorators/logger.decorator";
+import { Logger } from "winston";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { BoostingStatus, ProductBoosting } from "./entities/boosts.entity";
 
 export interface CreateBoostDto {
   productId: number;
@@ -29,14 +29,14 @@ export interface BoostResponse {
 export class BoostsService {
   private readonly CACHE_TTL = 3600; // 1 hour
   private readonly BOOST_LOCK_TTL = 10; // 10 seconds
-  
+
   constructor(
     @InjectRepository(ProductBoosting)
     private readonly boostRepository: Repository<ProductBoosting>,
     private readonly redisService: RedisService,
-    @InjectQueue('product-queue') private productQueue: Queue,
-    @InjectQueue('boost-queue') private boostQueue: Queue,
-    @InjectLogger() private readonly logger: Logger,
+    @InjectQueue("product-queue") private productQueue: Queue,
+    @InjectQueue("boost-queue") private boostQueue: Queue,
+    @InjectLogger() private readonly logger: Logger
   ) {}
 
   /**
@@ -48,20 +48,16 @@ export class BoostsService {
 
     try {
       // Acquire distributed lock to prevent race conditions
-      const lockAcquired = await this.redisService.acquireLock(
-        lockKey,
-        lockToken,
-        this.BOOST_LOCK_TTL,
-      );
+      const lockAcquired = await this.redisService.acquireLock(lockKey, lockToken, this.BOOST_LOCK_TTL);
 
       if (!lockAcquired) {
-        throw new BadRequestException('Boost operation in progress for this product');
+        throw new BadRequestException("Boost operation in progress for this product");
       }
 
       // Check if product already has an active boost
       const existingBoost = await this.getActiveBoostByProduct(dto.productId);
       if (existingBoost) {
-        throw new BadRequestException('Product already has an active boost');
+        throw new BadRequestException("Product already has an active boost");
       }
 
       const startDate = new Date();
@@ -81,23 +77,31 @@ export class BoostsService {
       // Queue background jobs
       await Promise.all([
         // Activate boost immediately
-        this.boostQueue.add('activate-boost', {
-          boostId: savedBoost.id,
-          productId: dto.productId,
-          boostScore: dto.boostScore,
-        }, { delay: 1000 }), // Activate after 1 second
+        this.boostQueue.add(
+          "activate-boost",
+          {
+            boostId: savedBoost.id,
+            productId: dto.productId,
+            boostScore: dto.boostScore,
+          },
+          { delay: 1000 }
+        ), // Activate after 1 second
 
         // Schedule boost expiry
-        this.boostQueue.add('expire-boost', {
-          boostId: savedBoost.id,
-          productId: dto.productId,
-        }, { delay: dto.durationDays * 24 * 60 * 60 * 1000 }),
+        this.boostQueue.add(
+          "expire-boost",
+          {
+            boostId: savedBoost.id,
+            productId: dto.productId,
+          },
+          { delay: dto.durationDays * 24 * 60 * 60 * 1000 }
+        ),
 
         // Update product stats
-        this.productQueue.add('update-boost-stats', {
+        this.productQueue.add("update-boost-stats", {
           productId: dto.productId,
           boostScore: dto.boostScore,
-          action: 'add',
+          action: "add",
         }),
       ]);
 
@@ -145,11 +149,7 @@ export class BoostsService {
     const response = this.mapToResponse(boost);
 
     // Cache the result
-    await this.redisService.setCacheWithTTL(
-      cacheKey,
-      JSON.stringify(response),
-      this.CACHE_TTL,
-    );
+    await this.redisService.setCacheWithTTL(cacheKey, JSON.stringify(response), this.CACHE_TTL);
 
     return response;
   }
@@ -185,11 +185,11 @@ export class BoostsService {
     });
 
     if (!boost) {
-      throw new NotFoundException('Boost not found');
+      throw new NotFoundException("Boost not found");
     }
 
     if (boost.status === BoostingStatus.CANCELED || boost.status === BoostingStatus.EXPIRED) {
-      throw new BadRequestException('Boost is already inactive');
+      throw new BadRequestException("Boost is already inactive");
     }
 
     boost.status = BoostingStatus.CANCELED;
@@ -198,17 +198,17 @@ export class BoostsService {
     // Background jobs
     await Promise.all([
       // Update product stats
-      this.productQueue.add('update-boost-stats', {
+      this.productQueue.add("update-boost-stats", {
         productId: boost.productId,
         boostScore: boost.boostScore,
-        action: 'remove',
+        action: "remove",
       }),
 
       // Log the cancellation
-      this.boostQueue.add('log-boost-cancellation', {
+      this.boostQueue.add("log-boost-cancellation", {
         boostId,
         userId,
-        reason: 'user_cancelled',
+        reason: "user_cancelled",
       }),
     ]);
 
@@ -226,7 +226,7 @@ export class BoostsService {
   async getProductBoostHistory(
     productId: number,
     page = 1,
-    limit = 20,
+    limit = 20
   ): Promise<{ data: BoostResponse[]; total: number; page: number; pages: number }> {
     const cacheKey = `boost:history:${productId}:${page}:${limit}`;
 
@@ -238,7 +238,7 @@ export class BoostsService {
 
     const [boosts, total] = await this.boostRepository.findAndCount({
       where: { productId },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -269,12 +269,12 @@ export class BoostsService {
     }
 
     const boosts = await this.boostRepository
-      .createQueryBuilder('boost')
-      .select('boost.productId', 'productId')
-      .addSelect('boost.boostScore', 'boostScore')
-      .where('boost.status = :status', { status: BoostingStatus.ACTIVE })
-      .andWhere('boost.endDate > :now', { now: new Date() })
-      .orderBy('boost.boostScore', 'DESC')
+      .createQueryBuilder("boost")
+      .select("boost.productId", "productId")
+      .addSelect("boost.boostScore", "boostScore")
+      .where("boost.status = :status", { status: BoostingStatus.ACTIVE })
+      .andWhere("boost.endDate > :now", { now: new Date() })
+      .orderBy("boost.boostScore", "DESC")
       .limit(limit)
       .getRawMany();
 
@@ -325,10 +325,10 @@ export class BoostsService {
     await this.boostRepository.save(boost);
 
     // Update stats
-    await this.productQueue.add('update-boost-stats', {
+    await this.productQueue.add("update-boost-stats", {
       productId: boost.productId,
       boostScore: boost.boostScore,
-      action: 'remove',
+      action: "remove",
     });
 
     await this.invalidateBoostCaches(boost.productId);
@@ -341,7 +341,7 @@ export class BoostsService {
    */
   @Cron(CronExpression.EVERY_HOUR)
   async handleExpiredBoosts() {
-    console.log('Running expired boosts cleanup');
+    console.log("Running expired boosts cleanup");
 
     const expiredBoosts = await this.boostRepository.find({
       where: {
@@ -358,14 +358,14 @@ export class BoostsService {
     const batchSize = 50;
     for (let i = 0; i < expiredBoosts.length; i += batchSize) {
       const batch = expiredBoosts.slice(i, i + batchSize);
-      
+
       await Promise.all(
-        batch.map(boost =>
-          this.boostQueue.add('expire-boost', {
+        batch.map((boost) =>
+          this.boostQueue.add("expire-boost", {
             boostId: boost.id,
             productId: boost.productId,
-          }),
-        ),
+          })
+        )
       );
     }
 
@@ -389,16 +389,13 @@ export class BoostsService {
     }
 
     const result = await this.boostRepository
-      .createQueryBuilder('boost')
-      .select('COUNT(*)', 'totalBoosts')
-      .addSelect(
-        'SUM(CASE WHEN boost.status = :status THEN 1 ELSE 0 END)',
-        'activeBoosts',
-      )
-      .addSelect('SUM(boost.boostScore)', 'totalBoostScore')
-      .addSelect('AVG(boost.boostScore)', 'averageBoostScore')
-      .where('boost.productId = :productId', { productId })
-      .setParameter('status', BoostingStatus.ACTIVE)
+      .createQueryBuilder("boost")
+      .select("COUNT(*)", "totalBoosts")
+      .addSelect("SUM(CASE WHEN boost.status = :status THEN 1 ELSE 0 END)", "activeBoosts")
+      .addSelect("SUM(boost.boostScore)", "totalBoostScore")
+      .addSelect("AVG(boost.boostScore)", "averageBoostScore")
+      .where("boost.productId = :productId", { productId })
+      .setParameter("status", BoostingStatus.ACTIVE)
       .getRawOne();
 
     const analytics = {
@@ -426,11 +423,11 @@ export class BoostsService {
     ];
 
     await Promise.all(
-      patterns.map(pattern =>
-        pattern.includes('*')
+      patterns.map((pattern) =>
+        pattern.includes("*")
           ? this.redisService.deleteByPatternSafe(pattern)
-          : this.redisService.delCache(pattern),
-      ),
+          : this.redisService.delCache(pattern)
+      )
     );
   }
 

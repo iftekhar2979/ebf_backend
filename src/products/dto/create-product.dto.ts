@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Type } from "class-transformer";
 import {
   IsString,
   IsInt,
@@ -16,8 +16,8 @@ import {
   Length,
   IsUUID,
   min,
-} from 'class-validator';
-import { TargetedGender } from '../entities/product.entity';
+} from "class-validator";
+import { TargetedGender } from "../entities/product.entity";
 
 export class CreateProductVariantDto {
   @IsInt()
@@ -32,7 +32,7 @@ export class CreateProductVariantDto {
   @IsNotEmpty()
   @Length(1, 100)
   sku: string;
-   @IsInt()
+  @IsInt()
   @IsNotEmpty()
   @Min(1)
   @Max(100)
@@ -60,7 +60,6 @@ export class CreateProductDto {
   @IsNotEmpty()
   @Length(3, 255)
   productName: string;
-
 
   @IsEnum(TargetedGender)
   @IsNotEmpty()
@@ -96,8 +95,8 @@ export class CreateProductDto {
   variants: CreateProductVariantDto[];
 
   @IsArray()
-  @ArrayMinSize(2, { message: 'Minimum 2 images required' })
-  @ArrayMaxSize(5, { message: 'Maximum 5 images allowed' })
+  @ArrayMinSize(2, { message: "Minimum 2 images required" })
+  @ArrayMaxSize(5, { message: "Maximum 5 images allowed" })
   @ValidateNested({ each: true })
   @Type(() => CreateProductImageDto)
   images: CreateProductImageDto[];

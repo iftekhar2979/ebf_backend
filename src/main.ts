@@ -127,7 +127,7 @@ async function bootstrap() {
   //           "https://*.cloudflare.com",
   //           "https://polyfill.io",
   //           `https: 'unsafe-inline'`, // FIXME: use script-src CSP NONCES
-  //           /* 
+  //           /*
   //             CSP NONCES https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#unsafe_inline
   //            */
   //         ],

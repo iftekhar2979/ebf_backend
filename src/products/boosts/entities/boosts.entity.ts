@@ -1,5 +1,5 @@
-import { Payment } from 'src/payments/entities/payments.entity';
-import { Product } from 'src/products/entities/product.entity';
+import { Payment } from "src/payments/entities/payments.entity";
+import { Product } from "src/products/entities/product.entity";
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -8,47 +8,47 @@ import {
   Index,
   OneToOne,
   JoinColumn,
-} from 'typeorm';
+} from "typeorm";
 
 export enum BoostingStatus {
-  ACTIVE = 'active',
-  CANCELED = 'canceled',
-  PENDING = 'pending',
-  EXPIRED = 'expired',
+  ACTIVE = "active",
+  CANCELED = "canceled",
+  PENDING = "pending",
+  EXPIRED = "expired",
 }
 
-@Entity('product_boosting')
-@Index('product_boosting_popularity_tracking', ['productId'])
-@Index('Product Event End Date', ['startDate', 'endDate'])
+@Entity("product_boosting")
+@Index("product_boosting_popularity_tracking", ["productId"])
+@Index("Product Event End Date", ["startDate", "endDate"])
 export class ProductBoosting {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   boostScore: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   productId: number;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: "timestamp" })
   startDate: Date;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: BoostingStatus,
     default: BoostingStatus.PENDING,
   })
   status: BoostingStatus;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: "timestamp" })
   endDate: Date;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: "timestamp" })
   createdAt: Date;
 
   // Relationships
   @OneToOne(() => Product, (product) => product.boosting)
-  @JoinColumn({ name: 'productId' })
+  @JoinColumn({ name: "productId" })
   product: Product;
 
   @OneToOne(() => Payment, (payment) => payment.boosting)

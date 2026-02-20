@@ -1,17 +1,12 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
-import { ProductVariant } from '../varients/entities/varients.entity';
-import { CreateColorDto } from './dto/create-color.dto';
-import { UpdateColorDto } from './dto/update-color.dto';
-import { QueryColorDto } from './dto/query-color.dto';
-import { ProductColor } from './entities/colors.entity';
-import { QueryVariantDto } from './dto/query-varient.dto';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, Like } from "typeorm";
+import { ProductVariant } from "../varients/entities/varients.entity";
+import { CreateColorDto } from "./dto/create-color.dto";
+import { UpdateColorDto } from "./dto/update-color.dto";
+import { QueryColorDto } from "./dto/query-color.dto";
+import { ProductColor } from "./entities/colors.entity";
+import { QueryVariantDto } from "./dto/query-varient.dto";
 
 @Injectable()
 export class ColorsService {
@@ -19,7 +14,7 @@ export class ColorsService {
     @InjectRepository(ProductColor)
     private readonly colorRepository: Repository<ProductColor>,
     @InjectRepository(ProductVariant)
-    private readonly productVariantRepository: Repository<ProductVariant>,
+    private readonly productVariantRepository: Repository<ProductVariant>
   ) {}
 
   /**
@@ -32,16 +27,14 @@ export class ColorsService {
     });
 
     if (existingColor) {
-      throw new ConflictException(
-        `Color with name "${createColorDto.name}" already exists`,
-      );
+      throw new ConflictException(`Color with name "${createColorDto.name}" already exists`);
     }
 
     try {
       const color = this.colorRepository.create(createColorDto);
       return await this.colorRepository.save(color);
     } catch (error) {
-      throw new BadRequestException('Failed to create color');
+      throw new BadRequestException("Failed to create color");
     }
   }
 
@@ -50,7 +43,7 @@ export class ColorsService {
    */
   async findAllColors(): Promise<ProductColor[]> {
     return await this.colorRepository.find({
-      order: { name: 'ASC' },
+      order: { name: "ASC" },
     });
   }
 
@@ -70,7 +63,7 @@ export class ColorsService {
       where: whereCondition,
       take: limit,
       skip: skip,
-      order: { name: 'ASC' },
+      order: { name: "ASC" },
     });
 
     return {
@@ -127,10 +120,10 @@ export class ColorsService {
 
     const [data, total] = await this.productVariantRepository.findAndCount({
       where: { color: { id: colorId } },
-      relations: ['color', 'product', 'size'],
+      relations: ["color", "product", "size"],
       take: limit,
       skip: skip,
-    //   order: { cr : 'DESC' },
+      //   order: { cr : 'DESC' },
     });
 
     return {
@@ -152,10 +145,7 @@ export class ColorsService {
   /**
    * Update a color
    */
-  async update(
-    id: number,
-    updateColorDto: UpdateColorDto,
-  ): Promise<ProductColor> {
+  async update(id: number, updateColorDto: UpdateColorDto): Promise<ProductColor> {
     const color = await this.findOne(id);
 
     // If name is being updated, check for duplicates
@@ -165,9 +155,7 @@ export class ColorsService {
       });
 
       if (existingColor) {
-        throw new ConflictException(
-          `Color with name "${updateColorDto.name}" already exists`,
-        );
+        throw new ConflictException(`Color with name "${updateColorDto.name}" already exists`);
       }
     }
 
@@ -176,7 +164,7 @@ export class ColorsService {
     try {
       return await this.colorRepository.save(color);
     } catch (error) {
-      throw new BadRequestException('Failed to update color');
+      throw new BadRequestException("Failed to update color");
     }
   }
 
@@ -193,7 +181,7 @@ export class ColorsService {
 
     if (variantCount > 0) {
       throw new BadRequestException(
-        `Cannot delete color. It has ${variantCount} associated product variant(s)`,
+        `Cannot delete color. It has ${variantCount} associated product variant(s)`
       );
     }
 
@@ -217,7 +205,7 @@ export class ColorsService {
           ...color,
           variantsCount: variantCount,
         };
-      }),
+      })
     );
 
     return {

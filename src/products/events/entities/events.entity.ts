@@ -1,5 +1,5 @@
-import { Product } from 'src/products/entities/product.entity';
-import { User } from 'src/user/entities/user.entity';
+import { Product } from "src/products/entities/product.entity";
+import { User } from "src/user/entities/user.entity";
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -9,33 +9,33 @@ import {
   Index,
   ManyToOne,
   JoinColumn,
-} from 'typeorm';
+} from "typeorm";
 export enum ProductEventType {
-  VIEW = 'view',
-  ADD_TO_CART = 'add_to_cart',
-  ORDER = 'order',
+  VIEW = "view",
+  ADD_TO_CART = "add_to_cart",
+  ORDER = "order",
 }
 
-@Entity('product_events')
-@Index('product_popularity_tracking', ['productId', 'userId'])
-@Index('Event Type', ['eventType'])
+@Entity("product_events")
+@Index("product_popularity_tracking", ["productId", "userId"])
+@Index("Event Type", ["eventType"])
 export class ProductEvent {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   productId: number;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: ProductEventType,
   })
   eventType: ProductEventType;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   userId: number;
 
-  @Column({ type: 'int', default: 1 })
+  @Column({ type: "int", default: 1 })
   quantity: number;
 
   @CreateDateColumn()
@@ -46,10 +46,10 @@ export class ProductEvent {
 
   // Relationships
   @ManyToOne(() => Product, (product) => product.events)
-  @JoinColumn({ name: 'productId' })
+  @JoinColumn({ name: "productId" })
   product: Product;
 
   @ManyToOne(() => User, (user) => user.productEvents)
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: "userId" })
   user: User;
 }

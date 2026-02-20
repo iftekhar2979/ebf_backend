@@ -10,14 +10,14 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
-} from '@nestjs/common';
-import { CategoriesService } from './categories.service';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
-import { QueryCategoryDto } from './dto/query-category.dto';
-import { QuerySubCategoryDto } from './dto/query-subcategory.dto';
+} from "@nestjs/common";
+import { CategoriesService } from "./categories.service";
+import { CreateCategoryDto } from "./dto/create-category.dto";
+import { UpdateCategoryDto } from "./dto/update-category.dto";
+import { QueryCategoryDto } from "./dto/query-category.dto";
+import { QuerySubCategoryDto } from "./dto/query-subcategory.dto";
 
-@Controller('categories')
+@Controller("categories")
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
@@ -44,7 +44,7 @@ export class CategoriesController {
    * Get all categories with subcategories count
    * GET /categories/with-count?page=1&limit=10
    */
-  @Get('with-count')
+  @Get("with-count")
   findAllWithCount(@Query() query: QueryCategoryDto) {
     return this.categoriesService.findAllWithSubCategoryCount(query);
   }
@@ -53,8 +53,8 @@ export class CategoriesController {
    * Get a single category by ID
    * GET /categories/:id
    */
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  @Get(":id")
+  findOne(@Param("id", ParseIntPipe) id: number) {
     return this.categoriesService.findOne(id);
   }
 
@@ -62,8 +62,8 @@ export class CategoriesController {
    * Get a single category by ID with subcategories count
    * GET /categories/:id/with-count
    */
-  @Get(':id/with-count')
-  findOneWithCount(@Param('id', ParseIntPipe) id: number) {
+  @Get(":id/with-count")
+  findOneWithCount(@Param("id", ParseIntPipe) id: number) {
     return this.categoriesService.findOneWithCount(id);
   }
 
@@ -71,11 +71,8 @@ export class CategoriesController {
    * Get all subcategories by category ID with pagination
    * GET /categories/:id/subcategories?page=1&limit=10
    */
-  @Get(':id/subcategories')
-  findSubCategoriesByCategoryId(
-    @Param('id', ParseIntPipe) id: number,
-    @Query() query: QuerySubCategoryDto,
-  ) {
+  @Get(":id/subcategories")
+  findSubCategoriesByCategoryId(@Param("id", ParseIntPipe) id: number, @Query() query: QuerySubCategoryDto) {
     return this.categoriesService.findSubCategoriesByCategoryId(id, query);
   }
 
@@ -83,11 +80,8 @@ export class CategoriesController {
    * Update a category
    * PATCH /categories/:id
    */
-  @Patch(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateCategoryDto: UpdateCategoryDto,
-  ) {
+  @Patch(":id")
+  update(@Param("id", ParseIntPipe) id: number, @Body() updateCategoryDto: UpdateCategoryDto) {
     return this.categoriesService.update(id, updateCategoryDto);
   }
 
@@ -95,9 +89,9 @@ export class CategoriesController {
    * Delete a category
    * DELETE /categories/:id
    */
-  @Delete(':id')
+  @Delete(":id")
   @HttpCode(HttpStatus.OK)
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Param("id", ParseIntPipe) id: number) {
     return this.categoriesService.remove(id);
   }
 }

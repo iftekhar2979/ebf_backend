@@ -26,8 +26,8 @@ export class UserService {
     @InjectLogger() private readonly _logger: Logger,
     private readonly _redisService: RedisService,
     private readonly _mailService: MailService,
-    private _dataSource: DataSource ,
-    private _shopService:ShopsService
+    private _dataSource: DataSource,
+    private _shopService: ShopsService
   ) {}
 
   async createUser(userData: Partial<User>): Promise<{ data: Partial<User>; ok: boolean; message: string }> {
@@ -78,7 +78,7 @@ export class UserService {
 
     return {
       message: "users retrived successfully",
-      ok:true,
+      ok: true,
       statusCode: 200,
       data: users,
       pagination: pagination({ page: Number(page), limit: Number(limit), total }),
@@ -104,7 +104,7 @@ export class UserService {
     // console.log(body)
     const result = await this._userRepository.insert(body);
     const user = await this._userRepository.findOne({ where: { id: result.identifiers[0].id } });
-    
+
     return "Admin Created Successfully";
   }
   async updateProfile(userId: string, updateDto: UpdateUserProfileDto): Promise<User> {
@@ -204,7 +204,7 @@ export class UserService {
     }
 
     this._logger.log(`Image updated successfully`, UserService.name);
-    return { message: "Image uploaded successfully", ok:true, data: null };
+    return { message: "Image uploaded successfully", ok: true, data: null };
   }
   async updateUserUpdatedTimeAndOfflineStatus({ user_id }: { user_id: string; user?: Partial<User> }) {
     this._logger.log(`Updating user Active Status`, UserService.name);
@@ -216,7 +216,7 @@ export class UserService {
 
     return updatedUser;
   }
-   signUpShops(signUp:ShopSignupDto){
-return this._shopService.signup(signUp)
+  signUpShops(signUp: ShopSignupDto) {
+    return this._shopService.signup(signUp);
   }
 }

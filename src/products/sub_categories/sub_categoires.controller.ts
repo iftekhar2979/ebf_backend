@@ -10,18 +10,16 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
-} from '@nestjs/common';
-import { SubCategoriesService } from './sub_categories.service';
-import { CreateSubCategoryDto } from './dto/create-sub-category.dto';
-import { QuerySubCategoryDto } from './dto/query-sub-category.dto';
-import { QueryProductDto } from './dto/query-product.dto';
-import { UpdateSubCategoryDto } from './dto/update-sub-category.dto';
+} from "@nestjs/common";
+import { SubCategoriesService } from "./sub_categories.service";
+import { CreateSubCategoryDto } from "./dto/create-sub-category.dto";
+import { QuerySubCategoryDto } from "./dto/query-sub-category.dto";
+import { QueryProductDto } from "./dto/query-product.dto";
+import { UpdateSubCategoryDto } from "./dto/update-sub-category.dto";
 
-@Controller('subcategories')
+@Controller("subcategories")
 export class SubCategoriesController {
-  constructor(
-    private readonly subCategoriesService: SubCategoriesService,
-  ) {}
+  constructor(private readonly subCategoriesService: SubCategoriesService) {}
 
   /**
    * Create a new subcategory
@@ -46,7 +44,7 @@ export class SubCategoriesController {
    * Get all subcategories with products count
    * GET /subcategories/with-count?page=1&limit=10
    */
-  @Get('with-count')
+  @Get("with-count")
   findAllWithCount(@Query() query: QuerySubCategoryDto) {
     return this.subCategoriesService.findAllWithProductCount(query);
   }
@@ -55,8 +53,8 @@ export class SubCategoriesController {
    * Get subcategories by category ID (for dropdowns)
    * GET /subcategories/by-category/:categoryId
    */
-  @Get('by-category/:categoryId')
-  findByCategoryId(@Param('categoryId', ParseIntPipe) categoryId: number) {
+  @Get("by-category/:categoryId")
+  findByCategoryId(@Param("categoryId", ParseIntPipe) categoryId: number) {
     return this.subCategoriesService.findByCategoryId(categoryId);
   }
 
@@ -64,8 +62,8 @@ export class SubCategoriesController {
    * Get a single subcategory by ID
    * GET /subcategories/:id
    */
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  @Get(":id")
+  findOne(@Param("id", ParseIntPipe) id: number) {
     return this.subCategoriesService.findOne(id);
   }
 
@@ -73,8 +71,8 @@ export class SubCategoriesController {
    * Get a single subcategory by ID with products count
    * GET /subcategories/:id/with-count
    */
-  @Get(':id/with-count')
-  findOneWithCount(@Param('id', ParseIntPipe) id: number) {
+  @Get(":id/with-count")
+  findOneWithCount(@Param("id", ParseIntPipe) id: number) {
     return this.subCategoriesService.findOneWithCount(id);
   }
 
@@ -82,11 +80,8 @@ export class SubCategoriesController {
    * Get all products by subcategory ID with pagination
    * GET /subcategories/:id/products?page=1&limit=10
    */
-  @Get(':id/products')
-  findProductsBySubCategoryId(
-    @Param('id', ParseIntPipe) id: number,
-    @Query() query: QueryProductDto,
-  ) {
+  @Get(":id/products")
+  findProductsBySubCategoryId(@Param("id", ParseIntPipe) id: number, @Query() query: QueryProductDto) {
     return this.subCategoriesService.findProductsBySubCategoryId(id, query);
   }
 
@@ -94,11 +89,8 @@ export class SubCategoriesController {
    * Update a subcategory
    * PATCH /subcategories/:id
    */
-  @Patch(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateSubCategoryDto: UpdateSubCategoryDto,
-  ) {
+  @Patch(":id")
+  update(@Param("id", ParseIntPipe) id: number, @Body() updateSubCategoryDto: UpdateSubCategoryDto) {
     return this.subCategoriesService.update(id, updateSubCategoryDto);
   }
 
@@ -106,9 +98,9 @@ export class SubCategoriesController {
    * Delete a subcategory
    * DELETE /subcategories/:id
    */
-  @Delete(':id')
+  @Delete(":id")
   @HttpCode(HttpStatus.OK)
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Param("id", ParseIntPipe) id: number) {
     return this.subCategoriesService.remove(id);
   }
 }

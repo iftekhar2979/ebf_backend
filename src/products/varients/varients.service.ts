@@ -1,21 +1,16 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, In } from 'typeorm';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
-import { ProductVariant } from './entities/varients.entity';
-import { Product } from 'src/products/entities/product.entity';
-import { Size } from 'src/products/sizes/entities/sizes.entity';
-import { ProductColor } from 'src/products/colors/entities/colors.entity';
-import { UpdateProductVariantDto } from 'src/products/dto/update-product.dto';
-import { CreateProductVariantDto } from 'src/products/dto/create-product.dto';
-import { ProductCacheService } from '../caches/caches.service';
-import { InjectLogger } from 'src/shared/decorators/logger.decorator';
+import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, DataSource, In } from "typeorm";
+import { InjectQueue } from "@nestjs/bull";
+import { Queue } from "bull";
+import { ProductVariant } from "./entities/varients.entity";
+import { Product } from "src/products/entities/product.entity";
+import { Size } from "src/products/sizes/entities/sizes.entity";
+import { ProductColor } from "src/products/colors/entities/colors.entity";
+import { UpdateProductVariantDto } from "src/products/dto/update-product.dto";
+import { CreateProductVariantDto } from "src/products/dto/create-product.dto";
+import { ProductCacheService } from "../caches/caches.service";
+import { InjectLogger } from "src/shared/decorators/logger.decorator";
 @Injectable()
 export class VarientsService {
   // private readonly logger = new Logger(VarientsService.name);
@@ -31,134 +26,131 @@ export class VarientsService {
     private colorRepository: Repository<ProductColor>,
     private dataSource: DataSource,
     private productCacheService: ProductCacheService,
-    @InjectLogger() private readonly logger:Logger,
-    @InjectQueue('product-queue') private productQueue: Queue,
+    @InjectLogger() private readonly logger: Logger,
+    @InjectQueue("product-queue") private productQueue: Queue
   ) {}
 
   /**
    * Create a new variant for a product
    */
- async create(productId: number, createVariantDto: CreateProductVariantDto) {
-  const queryRunner = this.dataSource.createQueryRunner();
-  
-  try {
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+  async create(productId: number, createVariantDto: CreateProductVariantDto) {
+    const queryRunner = this.dataSource.createQueryRunner();
 
-    // 🔒 ALL DB OPERATIONS USE queryRunner.manager FOR TRANSACTIONAL CONSISTENCY
-    
-    // Validate product exists
-    const product = await queryRunner.manager.findOne(Product, { 
-      where: { id: productId },
-      select: ['id', 'userId', 'subCategoryId'] // Minimal fields needed later
-    });
-    if (!product) throw new NotFoundException(`Product with ID ${productId} not found`);
+    try {
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
 
-    // Validate size exists
-    const size = await queryRunner.manager.findOne(Size, { 
-      where: { id: createVariantDto.sizeId } 
-    });
-    if (!size) throw new BadRequestException(`Size with ID ${createVariantDto.sizeId} not found`);
+      // 🔒 ALL DB OPERATIONS USE queryRunner.manager FOR TRANSACTIONAL CONSISTENCY
 
-    // Validate color exists
-    const color = await queryRunner.manager.findOne(ProductColor, { 
-      where: { id: createVariantDto.colorId } 
-    });
-    if (!color) throw new BadRequestException(`Color with ID ${createVariantDto.colorId} not found`);
+      // Validate product exists
+      const product = await queryRunner.manager.findOne(Product, {
+        where: { id: productId },
+        select: ["id", "userId", "subCategoryId"], // Minimal fields needed later
+      });
+      if (!product) throw new NotFoundException(`Product with ID ${productId} not found`);
 
-    // Check SKU uniqueness
-    const existingSku = await queryRunner.manager.exists(ProductVariant, { 
-      where: { sku: createVariantDto.sku } 
-    });
-    if (existingSku) throw new BadRequestException(`Variant with SKU ${createVariantDto.sku} already exists`);
+      // Validate size exists
+      const size = await queryRunner.manager.findOne(Size, {
+        where: { id: createVariantDto.sizeId },
+      });
+      if (!size) throw new BadRequestException(`Size with ID ${createVariantDto.sizeId} not found`);
 
-    // Check duplicate variant (size+color for product)
-    const duplicateVariant = await queryRunner.manager.exists(ProductVariant, {
-      where: {
+      // Validate color exists
+      const color = await queryRunner.manager.findOne(ProductColor, {
+        where: { id: createVariantDto.colorId },
+      });
+      if (!color) throw new BadRequestException(`Color with ID ${createVariantDto.colorId} not found`);
+
+      // Check SKU uniqueness
+      const existingSku = await queryRunner.manager.exists(ProductVariant, {
+        where: { sku: createVariantDto.sku },
+      });
+      if (existingSku)
+        throw new BadRequestException(`Variant with SKU ${createVariantDto.sku} already exists`);
+
+      // Check duplicate variant (size+color for product)
+      const duplicateVariant = await queryRunner.manager.exists(ProductVariant, {
+        where: {
+          productId,
+          sizeId: createVariantDto.sizeId,
+          colorId: createVariantDto.colorId,
+        },
+      });
+      if (duplicateVariant) {
+        throw new BadRequestException(
+          `Variant with size ${createVariantDto.sizeId} and color ${createVariantDto.colorId} already exists for this product`
+        );
+      }
+
+      // Create and save variant
+      const variant = queryRunner.manager.create(ProductVariant, {
+        ...createVariantDto,
         productId,
-        sizeId: createVariantDto.sizeId,
-        colorId: createVariantDto.colorId,
-      },
-    });
-    if (duplicateVariant) {
-      throw new BadRequestException(
-        `Variant with size ${createVariantDto.sizeId} and color ${createVariantDto.colorId} already exists for this product`
+      });
+      const savedVariant = await queryRunner.manager.save(variant);
+
+      await queryRunner.commitTransaction();
+
+      // 🌐 Cache invalidation happens AFTER transaction commit (safe to use external services)
+      await this.productCacheService.invalidateProductCaches(
+        productId,
+        product.userId,
+        product.subCategoryId
       );
+
+      this.logger.log(`Variant created with ID: ${savedVariant.id} for product ${productId}`);
+
+      // 💡 Final read uses service method (outside transaction scope - safe to use repository)
+      return this.findOne(savedVariant.id);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`Failed to create variant: ${error.message}`, error.stack);
+      throw error;
+    } finally {
+      await queryRunner.release(); // Always release connection
     }
-
-    // Create and save variant
-    const variant = queryRunner.manager.create(ProductVariant, {
-      ...createVariantDto,
-      productId,
-    });
-    const savedVariant = await queryRunner.manager.save(variant);
-
-    await queryRunner.commitTransaction();
-
-    // 🌐 Cache invalidation happens AFTER transaction commit (safe to use external services)
-    await this.productCacheService.invalidateProductCaches(
-      productId,
-      product.userId,
-      product.subCategoryId,
-    );
-
-    this.logger.log(`Variant created with ID: ${savedVariant.id} for product ${productId}`);
-    
-    // 💡 Final read uses service method (outside transaction scope - safe to use repository)
-    return this.findOne(savedVariant.id);
-    
-  } catch (error) {
-    await queryRunner.rollbackTransaction();
-    this.logger.error(`Failed to create variant: ${error.message}`, error.stack);
-    throw error;
-  } finally {
-    await queryRunner.release(); // Always release connection
   }
-}
 
   /**
    * Find all variants for a product
    */
   async findByProduct(productId: number) {
-  const queryRunner = this.dataSource.createQueryRunner();
-  
-  try {
-    await queryRunner.connect();
+    const queryRunner = this.dataSource.createQueryRunner();
 
-    // 🔍 Efficient existence check (respects soft deletes if configured)
-    const productExists = await queryRunner.manager.exists(Product, {
-      where: { id: productId },
-    });
+    try {
+      await queryRunner.connect();
 
-    if (!productExists) {
-      throw new NotFoundException(`Product with ID ${productId} not found`);
+      // 🔍 Efficient existence check (respects soft deletes if configured)
+      const productExists = await queryRunner.manager.exists(Product, {
+        where: { id: productId },
+      });
+
+      if (!productExists) {
+        throw new NotFoundException(`Product with ID ${productId} not found`);
+      }
+
+      // 📦 Fetch variants with required relations using SAME connection
+      return await queryRunner.manager.find(ProductVariant, {
+        where: { productId },
+        relations: ["size", "color", "product"],
+        order: { id: "ASC" },
+        // Optional optimization: add take/skip if pagination is needed later
+      });
+    } catch (error) {
+      this.logger.error(`Failed to fetch variants for product ${productId}: ${error.message}`, error.stack);
+      // Preserve original exception types (NotFoundException bubbles up cleanly)
+      throw error;
+    } finally {
+      await queryRunner.release(); // Critical: always release connection
     }
-
-    // 📦 Fetch variants with required relations using SAME connection
-    return await queryRunner.manager.find(ProductVariant, {
-      where: { productId },
-      relations: ['size', 'color', 'product'],
-      order: { id: 'ASC' },
-      // Optional optimization: add take/skip if pagination is needed later
-    });
-  } catch (error) {
-    this.logger.error(
-      `Failed to fetch variants for product ${productId}: ${error.message}`,
-      error.stack,
-    );
-    // Preserve original exception types (NotFoundException bubbles up cleanly)
-    throw error;
-  } finally {
-    await queryRunner.release(); // Critical: always release connection
   }
-}
   /**
    * Find a single variant by ID
    */
   async findOne(id: number) {
     const variant = await this.variantRepository.findOne({
       where: { id },
-      relations: ['size', 'color', 'product'],
+      relations: ["size", "color", "product"],
     });
 
     if (!variant) {
@@ -174,7 +166,7 @@ export class VarientsService {
   async findBySku(sku: string) {
     const variant = await this.variantRepository.findOne({
       where: { sku },
-      relations: ['size', 'color', 'product'],
+      relations: ["size", "color", "product"],
     });
 
     if (!variant) {
@@ -193,9 +185,9 @@ export class VarientsService {
     await queryRunner.startTransaction();
 
     try {
-      const variant = await queryRunner.manager.findOne(ProductVariant ,{
+      const variant = await queryRunner.manager.findOne(ProductVariant, {
         where: { id },
-        relations: ['product'],
+        relations: ["product"],
       });
 
       if (!variant) {
@@ -204,7 +196,7 @@ export class VarientsService {
 
       // If SKU is being updated, check for duplicates
       if (updateVariantDto.sku && updateVariantDto.sku !== variant.sku) {
-        const existingVariant = await queryRunner.manager.findOne(ProductVariant,{
+        const existingVariant = await queryRunner.manager.findOne(ProductVariant, {
           where: { sku: updateVariantDto.sku },
         });
 
@@ -215,7 +207,7 @@ export class VarientsService {
 
       // Validate size if being updated
       if (updateVariantDto.sizeId) {
-        const size = await queryRunner.manager.findOne(Size,{
+        const size = await queryRunner.manager.findOne(Size, {
           where: { id: updateVariantDto.sizeId },
         });
 
@@ -226,7 +218,7 @@ export class VarientsService {
 
       // Validate color if being updated
       if (updateVariantDto.colorId) {
-        const color = await queryRunner.manager.findOne(ProductColor,{
+        const color = await queryRunner.manager.findOne(ProductColor, {
           where: { id: updateVariantDto.colorId },
         });
 
@@ -244,7 +236,7 @@ export class VarientsService {
       await this.productCacheService.invalidateProductCaches(
         variant.productId,
         variant.product.userId,
-        variant.product.subCategoryId,
+        variant.product.subCategoryId
       );
 
       this.logger.log(`Variant ${id} updated successfully`);
@@ -263,11 +255,11 @@ export class VarientsService {
    * Delete a variant
    */
   async remove(id: number) {
-    const queryRunner = this.dataSource.createQueryRunner()
-    await queryRunner.connect()
-    const variant = await queryRunner.manager.findOne(ProductVariant,{
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    const variant = await queryRunner.manager.findOne(ProductVariant, {
       where: { id },
-      relations: ['product'],
+      relations: ["product"],
     });
 
     if (!variant) {
@@ -275,12 +267,12 @@ export class VarientsService {
     }
 
     // Check if this is the last variant for the product
-    const variantCount = await queryRunner.manager.count(ProductVariant,{
-      where:{productId:variant.productId}
-    })
+    const variantCount = await queryRunner.manager.count(ProductVariant, {
+      where: { productId: variant.productId },
+    });
 
     if (variantCount === 1) {
-      throw new BadRequestException('Cannot delete the last variant of a product');
+      throw new BadRequestException("Cannot delete the last variant of a product");
     }
 
     await queryRunner.manager.remove(variant);
@@ -289,12 +281,12 @@ export class VarientsService {
     await this.productCacheService.invalidateProductCaches(
       variant.productId,
       variant.product.userId,
-      variant.product.subCategoryId,
+      variant.product.subCategoryId
     );
 
     this.logger.log(`Variant ${id} deleted successfully`);
 
-    return { message: 'Variant deleted successfully' };
+    return { message: "Variant deleted successfully" };
   }
 
   /**
@@ -303,8 +295,8 @@ export class VarientsService {
   async findByColor(productId: number, colorId: number) {
     return this.variantRepository.find({
       where: { productId, colorId },
-      relations: ['size', 'color'],
-      order: { price: 'ASC' },
+      relations: ["size", "color"],
+      order: { price: "ASC" },
     });
   }
 
@@ -314,8 +306,8 @@ export class VarientsService {
   async findBySize(productId: number, sizeId: number) {
     return this.variantRepository.find({
       where: { productId, sizeId },
-      relations: ['size', 'color'],
-      order: { price: 'ASC' },
+      relations: ["size", "color"],
+      order: { price: "ASC" },
     });
   }
 
@@ -324,13 +316,13 @@ export class VarientsService {
    */
   async findByPriceRange(productId: number, minPrice: number, maxPrice: number) {
     return this.variantRepository
-      .createQueryBuilder('variant')
-      .leftJoinAndSelect('variant.size', 'size')
-      .leftJoinAndSelect('variant.color', 'color')
-      .where('variant.productId = :productId', { productId })
-      .andWhere('variant.price >= :minPrice', { minPrice })
-      .andWhere('variant.price <= :maxPrice', { maxPrice })
-      .orderBy('variant.price', 'ASC')
+      .createQueryBuilder("variant")
+      .leftJoinAndSelect("variant.size", "size")
+      .leftJoinAndSelect("variant.color", "color")
+      .where("variant.productId = :productId", { productId })
+      .andWhere("variant.price >= :minPrice", { minPrice })
+      .andWhere("variant.price <= :maxPrice", { maxPrice })
+      .orderBy("variant.price", "ASC")
       .getMany();
   }
 
@@ -343,7 +335,7 @@ export class VarientsService {
     await queryRunner.startTransaction();
 
     try {
-      const product = await queryRunner.manager.findOne(Product,{
+      const product = await queryRunner.manager.findOne(Product, {
         where: { id: productId },
       });
 
@@ -352,29 +344,27 @@ export class VarientsService {
       }
 
       // Validate all SKUs are unique
-      const skus = variants.map(v => v.sku);
+      const skus = variants.map((v) => v.sku);
       const uniqueSkus = new Set(skus);
       if (skus.length !== uniqueSkus.size) {
-        throw new BadRequestException('Duplicate SKUs found in variant list');
+        throw new BadRequestException("Duplicate SKUs found in variant list");
       }
 
       // Check for existing SKUs
-      const existingVariants = await queryRunner.manager.find(ProductVariant,{
+      const existingVariants = await queryRunner.manager.find(ProductVariant, {
         where: { sku: In(skus) },
       });
 
       if (existingVariants.length > 0) {
-        throw new BadRequestException(
-          `SKUs already exist: ${existingVariants.map(v => v.sku).join(', ')}`,
-        );
+        throw new BadRequestException(`SKUs already exist: ${existingVariants.map((v) => v.sku).join(", ")}`);
       }
 
       // Create all variants
-      const variantEntities = variants.map(variantDto =>
+      const variantEntities = variants.map((variantDto) =>
         queryRunner.manager.create(ProductVariant, {
           ...variantDto,
           productId,
-        }),
+        })
       );
 
       const savedVariants = await queryRunner.manager.save(ProductVariant, variantEntities);
@@ -385,7 +375,7 @@ export class VarientsService {
       await this.productCacheService.invalidateProductCaches(
         productId,
         product.userId,
-        product.subCategoryId,
+        product.subCategoryId
       );
 
       this.logger.log(`Bulk created ${savedVariants.length} variants for product ${productId}`);
@@ -406,8 +396,8 @@ export class VarientsService {
   async getCheapestVariant(productId: number) {
     return this.variantRepository.findOne({
       where: { productId },
-      relations: ['size', 'color'],
-      order: { price: 'ASC' },
+      relations: ["size", "color"],
+      order: { price: "ASC" },
     });
   }
 
@@ -416,16 +406,16 @@ export class VarientsService {
    */
   async getAvailableColors(productId: number) {
     const variants = await this.variantRepository
-      .createQueryBuilder('variant')
-      .leftJoinAndSelect('variant.color', 'color')
-      .where('variant.productId = :productId', { productId })
-      .groupBy('variant.colorId')
-      .addGroupBy('color.id')
+      .createQueryBuilder("variant")
+      .leftJoinAndSelect("variant.color", "color")
+      .where("variant.productId = :productId", { productId })
+      .groupBy("variant.colorId")
+      .addGroupBy("color.id")
       .getMany();
 
-    return variants.map(v => v.color).filter((color, index, self) =>
-      index === self.findIndex(c => c.id === color.id)
-    );
+    return variants
+      .map((v) => v.color)
+      .filter((color, index, self) => index === self.findIndex((c) => c.id === color.id));
   }
 
   /**
@@ -433,15 +423,15 @@ export class VarientsService {
    */
   async getAvailableSizes(productId: number) {
     const variants = await this.variantRepository
-      .createQueryBuilder('variant')
-      .leftJoinAndSelect('variant.size', 'size')
-      .where('variant.productId = :productId', { productId })
-      .groupBy('variant.sizeId')
-      .addGroupBy('size.id')
+      .createQueryBuilder("variant")
+      .leftJoinAndSelect("variant.size", "size")
+      .where("variant.productId = :productId", { productId })
+      .groupBy("variant.sizeId")
+      .addGroupBy("size.id")
       .getMany();
 
-    return variants.map(v => v.size).filter((size, index, self) =>
-      index === self.findIndex(s => s.id === size.id)
-    );
+    return variants
+      .map((v) => v.size)
+      .filter((size, index, self) => index === self.findIndex((s) => s.id === size.id));
   }
 }

@@ -1,17 +1,12 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, In } from 'typeorm';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
-import { ProductImage } from './entities/images.entity';
-import { Product } from 'src/products/entities/product.entity';
-import { CreateProductImageDto } from 'src/products/dto/create-product.dto';
-import { ProductCacheService } from '../caches/caches.service';
+import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, DataSource, In } from "typeorm";
+import { InjectQueue } from "@nestjs/bull";
+import { Queue } from "bull";
+import { ProductImage } from "./entities/images.entity";
+import { Product } from "src/products/entities/product.entity";
+import { CreateProductImageDto } from "src/products/dto/create-product.dto";
+import { ProductCacheService } from "../caches/caches.service";
 
 @Injectable()
 export class ImagesService {
@@ -26,7 +21,7 @@ export class ImagesService {
     private productRepository: Repository<Product>,
     private dataSource: DataSource,
     private productCacheService: ProductCacheService,
-    @InjectQueue('product-queue') private productQueue: Queue,
+    @InjectQueue("product-queue") private productQueue: Queue
   ) {}
 
   /**
@@ -40,7 +35,7 @@ export class ImagesService {
 
     try {
       // Validate product exists
-      const product = await queryRunner.manager.findOne(Product,{
+      const product = await queryRunner.manager.findOne(Product, {
         where: { id: productId },
       });
 
@@ -49,13 +44,13 @@ export class ImagesService {
       }
 
       // Check current image count
-      const currentImageCount = await queryRunner.manager.count(ProductImage,{
+      const currentImageCount = await queryRunner.manager.count(ProductImage, {
         where: { productId, deletedAt: null },
       });
 
       if (currentImageCount >= this.MAX_IMAGES) {
         throw new BadRequestException(
-          `Product already has maximum ${this.MAX_IMAGES} images. Delete an existing image first.`,
+          `Product already has maximum ${this.MAX_IMAGES} images. Delete an existing image first.`
         );
       }
 
@@ -70,7 +65,7 @@ export class ImagesService {
       await queryRunner.commitTransaction();
 
       // Queue image processing
-      await this.productQueue.add('process-images', {
+      await this.productQueue.add("process-images", {
         productId,
         imageUrls: [savedImage.image],
       });
@@ -79,7 +74,7 @@ export class ImagesService {
       await this.productCacheService.invalidateProductCaches(
         productId,
         product.userId,
-        product.subCategoryId,
+        product.subCategoryId
       );
 
       this.logger.log(`Image created with ID: ${savedImage.id} for product ${productId}`);
@@ -98,9 +93,9 @@ export class ImagesService {
    * Find all images for a product
    */
   async findByProduct(productId: number) {
-    const queryRunner = this.dataSource.createQueryRunner()
-    await queryRunner.connect()
-    const product = await queryRunner.manager.findOne(Product,{
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    const product = await queryRunner.manager.findOne(Product, {
       where: { id: productId },
     });
 
@@ -108,9 +103,9 @@ export class ImagesService {
       throw new NotFoundException(`Product with ID ${productId} not found`);
     }
 
-    return queryRunner.manager.find(ProductImage,{
+    return queryRunner.manager.find(ProductImage, {
       where: { productId },
-      order: { id: 'ASC' },
+      order: { id: "ASC" },
     });
   }
 
@@ -120,7 +115,7 @@ export class ImagesService {
   async findOne(id: number) {
     const image = await this.imageRepository.findOne({
       where: { id },
-      relations: ['product'],
+      relations: ["product"],
     });
 
     if (!image) {
@@ -141,7 +136,7 @@ export class ImagesService {
     try {
       const image = await this.imageRepository.findOne({
         where: { id },
-        relations: ['product'],
+        relations: ["product"],
       });
 
       if (!image) {
@@ -156,7 +151,7 @@ export class ImagesService {
       await queryRunner.commitTransaction();
 
       // Queue image processing
-      await this.productQueue.add('process-images', {
+      await this.productQueue.add("process-images", {
         productId: image.productId,
         imageUrls: [updateImageDto.image],
       });
@@ -165,7 +160,7 @@ export class ImagesService {
       await this.productCacheService.invalidateProductCaches(
         image.productId,
         image.product.userId,
-        image.product.subCategoryId,
+        image.product.subCategoryId
       );
 
       this.logger.log(`Image ${id} updated successfully`);
@@ -192,7 +187,7 @@ export class ImagesService {
     try {
       const image = await this.imageRepository.findOne({
         where: { id },
-        relations: ['product'],
+        relations: ["product"],
       });
 
       if (!image) {
@@ -206,7 +201,7 @@ export class ImagesService {
 
       if (currentImageCount <= this.MIN_IMAGES) {
         throw new BadRequestException(
-          `Cannot delete image. Product must have at least ${this.MIN_IMAGES} images.`,
+          `Cannot delete image. Product must have at least ${this.MIN_IMAGES} images.`
         );
       }
 
@@ -219,12 +214,12 @@ export class ImagesService {
       await this.productCacheService.invalidateProductCaches(
         image.productId,
         image.product.userId,
-        image.product.subCategoryId,
+        image.product.subCategoryId
       );
 
       this.logger.log(`Image ${id} deleted successfully`);
 
-      return { message: 'Image deleted successfully' };
+      return { message: "Image deleted successfully" };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       this.logger.error(`Failed to delete image: ${error.message}`, error.stack);
@@ -261,16 +256,16 @@ export class ImagesService {
 
       if (totalImages > this.MAX_IMAGES) {
         throw new BadRequestException(
-          `Cannot add ${images.length} images. Product would have ${totalImages} images, exceeding maximum of ${this.MAX_IMAGES}.`,
+          `Cannot add ${images.length} images. Product would have ${totalImages} images, exceeding maximum of ${this.MAX_IMAGES}.`
         );
       }
 
       // Create all images
-      const imageEntities = images.map(imageDto =>
+      const imageEntities = images.map((imageDto) =>
         queryRunner.manager.create(ProductImage, {
           productId,
           image: imageDto.image,
-        }),
+        })
       );
 
       const savedImages = await queryRunner.manager.save(ProductImage, imageEntities);
@@ -278,16 +273,16 @@ export class ImagesService {
       await queryRunner.commitTransaction();
 
       // Queue image processing
-      await this.productQueue.add('process-images', {
+      await this.productQueue.add("process-images", {
         productId,
-        imageUrls: savedImages.map(img => img.image),
+        imageUrls: savedImages.map((img) => img.image),
       });
 
       // Invalidate product cache
       await this.productCacheService.invalidateProductCaches(
         productId,
         product.userId,
-        product.subCategoryId,
+        product.subCategoryId
       );
 
       this.logger.log(`Bulk created ${savedImages.length} images for product ${productId}`);
@@ -326,7 +321,7 @@ export class ImagesService {
       });
 
       if (images.length !== imageIds.length) {
-        throw new BadRequestException('Some images do not belong to this product');
+        throw new BadRequestException("Some images do not belong to this product");
       }
 
       // Check if remaining images meet minimum requirement
@@ -338,7 +333,7 @@ export class ImagesService {
 
       if (remainingImages < this.MIN_IMAGES) {
         throw new BadRequestException(
-          `Cannot delete ${imageIds.length} images. Product must have at least ${this.MIN_IMAGES} images.`,
+          `Cannot delete ${imageIds.length} images. Product must have at least ${this.MIN_IMAGES} images.`
         );
       }
 
@@ -351,7 +346,7 @@ export class ImagesService {
       await this.productCacheService.invalidateProductCaches(
         productId,
         product.userId,
-        product.subCategoryId,
+        product.subCategoryId
       );
 
       this.logger.log(`Bulk deleted ${imageIds.length} images for product ${productId}`);
@@ -378,7 +373,7 @@ export class ImagesService {
     try {
       if (newImages.length < this.MIN_IMAGES || newImages.length > this.MAX_IMAGES) {
         throw new BadRequestException(
-          `Product must have between ${this.MIN_IMAGES} and ${this.MAX_IMAGES} images`,
+          `Product must have between ${this.MIN_IMAGES} and ${this.MAX_IMAGES} images`
         );
       }
 
@@ -394,11 +389,11 @@ export class ImagesService {
       await queryRunner.manager.softDelete(ProductImage, { productId });
 
       // Create new images
-      const imageEntities = newImages.map(imageDto =>
+      const imageEntities = newImages.map((imageDto) =>
         queryRunner.manager.create(ProductImage, {
           productId,
           image: imageDto.image,
-        }),
+        })
       );
 
       const savedImages = await queryRunner.manager.save(ProductImage, imageEntities);
@@ -406,16 +401,16 @@ export class ImagesService {
       await queryRunner.commitTransaction();
 
       // Queue image processing
-      await this.productQueue.add('process-images', {
+      await this.productQueue.add("process-images", {
         productId,
-        imageUrls: savedImages.map(img => img.image),
+        imageUrls: savedImages.map((img) => img.image),
       });
 
       // Invalidate product cache
       await this.productCacheService.invalidateProductCaches(
         productId,
         product.userId,
-        product.subCategoryId,
+        product.subCategoryId
       );
 
       this.logger.log(`Replaced all images for product ${productId}`);
@@ -436,7 +431,7 @@ export class ImagesService {
   async getPrimaryImage(productId: number) {
     return this.imageRepository.findOne({
       where: { productId },
-      order: { id: 'ASC' },
+      order: { id: "ASC" },
     });
   }
 
@@ -463,7 +458,7 @@ export class ImagesService {
       });
 
       if (images.length !== imageIdsInOrder.length) {
-        throw new BadRequestException('Some images do not belong to this product');
+        throw new BadRequestException("Some images do not belong to this product");
       }
 
       // Note: If you want to implement actual ordering, you'd need an 'order' column
@@ -475,10 +470,10 @@ export class ImagesService {
       await this.productCacheService.invalidateProductCaches(
         productId,
         product.userId,
-        product.subCategoryId,
+        product.subCategoryId
       );
 
-      return { message: 'Images reordered successfully' };
+      return { message: "Images reordered successfully" };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       this.logger.error(`Failed to reorder images: ${error.message}`, error.stack);

@@ -28,7 +28,7 @@ import { Verification } from "src/user/entities/verification.entity";
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([User,Verification]),
+    TypeOrmModule.forFeature([User, Verification]),
     PassportModule.register({ defaultStrategy: "jwt" }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
