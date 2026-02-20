@@ -34,7 +34,7 @@ export class RedisService implements OnModuleInit {
   }
 
   // ========== Basic Operations (using cache-manager) ==========
-  
+
   async setCache(key: string, value: string): Promise<void> {
     await this._cacheManager.set(key, value);
   }
@@ -82,60 +82,76 @@ export class RedisService implements OnModuleInit {
    * @param options Redis SET options (NX, EX, etc.)
    */
 
-  async zadd(key:string, score:number, value:string): Promise<void> {
+  async zadd(key: string, score: number, value: string): Promise<void> {
     try {
-      await this.client.zAdd(key, { score, value });  
-    }catch (error) {
+      await this.client.zAdd(key, { score, value });
+    } catch (error) {
       this._logger.error(`Failed to zAdd to key ${key}:`, error);
       throw error;
-    } 
+    }
   }
 
-  async zrange(key:string, start:number, stop:number): Promise<string[]> {
+  async zrange(key: string, start: number, stop: number): Promise<string[]> {
     try {
       return await this.client.zRange(key, start, stop);
-    }catch (error) {
+    } catch (error) {
       this._logger.error(`Failed to zRange key ${key}:`, error);
       throw error;
     }
   }
 
- 
-    async zincrby(key:string, increment:number, value:string): Promise<void> {
-      try {
-        await this.client.zIncrBy(key, increment, value); 
-      }catch (error) {  
-        this._logger.error(`Failed to zIncrBy key ${key}:`, error);
-        throw error;
-      }}
+  async zincrby(key: string, increment: number, value: string): Promise<void> {
+    try {
+      await this.client.zIncrBy(key, increment, value);
+    } catch (error) {
+      this._logger.error(`Failed to zIncrBy key ${key}:`, error);
+      throw error;
+    }
+  }
 
-      async zdel(key:string, value:string): Promise<void> { 
-        try{
-          await this.client.zRem(key, value);
-        }catch(error) {
-          this._logger.error(`Failed to zRem from key ${key}:`, error);
-          throw error;
-        }
+  async zdel(key: string, value: string): Promise<void> {
+    try {
+      await this.client.zRem(key, value);
+    } catch (error) {
+      this._logger.error(`Failed to zRem from key ${key}:`, error);
+      throw error;
+    }
+  }
+
+  async zRemoveRangeByScore(key: string, min: number, max: number): Promise<void> {
+    try {
+      await this.client.zRemRangeByScore(key, min, max);
+    } catch (error) {
+      this._logger.error(`Failed to zRemRangeByScore key ${key}:`, error);
+      throw error;
+    }
+  }
+  async zRevRank(key: string, value: string): Promise<number | null> {
+    try {
+      return await this.client.zRevRank(key, value);
+    } catch (error) {
+      this._logger.error(`Failed to zRevRank key ${key}:`, error);
+      throw error;
+    }
+  }
+
+  async delPattern(pattern: string): Promise<void> {
+    try {
+      const keys = await this.scanKeys(pattern);
+      if (keys.length > 0) {
+        await this.del(...keys);
+        this._logger.debug(`Deleted ${keys.length} keys matching pattern: ${pattern}`);
+      } else {
+        this._logger.debug(`No keys found matching pattern: ${pattern}`);
       }
-
-      async zRemoveRangeByScore(key:string, min:number, max:number): Promise<void> {
-        try {
-          await this.client.zRemRangeByScore(key, min, max);  
-        }catch (error) {  
-          this._logger.error(`Failed to zRemRangeByScore key ${key}:`, error);
-          throw error;  
-        }}
-        async zRevRank(key:string, value:string): Promise<number | null> {
-          try {
-            return await this.client.zRevRank(key, value);
-          }catch (error) {
-            this._logger.error(`Failed to zRevRank key ${key}:`, error);
-            throw error;
-          }}
-          
+    } catch (error) {
+      this._logger.error(`Failed to delete keys by pattern ${pattern}:`, error);
+      throw error;
+    }
+  }
   async setWithOptions(
-    key: string, 
-    value: string, 
+    key: string,
+    value: string,
     options?: {
       NX?: boolean;
       EX?: number;
@@ -144,11 +160,11 @@ export class RedisService implements OnModuleInit {
   ): Promise<string | null> {
     try {
       const args: any[] = [key, value];
-      
-      if (options?.NX) args.push('NX');
-      if (options?.EX) args.push('EX', options.EX);
-      if (options?.PX) args.push('PX', options.PX);
-      
+
+      if (options?.NX) args.push("NX");
+      if (options?.EX) args.push("EX", options.EX);
+      if (options?.PX) args.push("PX", options.PX);
+
       const result = await this.client.set(key, value, options as any);
       return result;
     } catch (error) {
@@ -235,7 +251,7 @@ export class RedisService implements OnModuleInit {
     try {
       const keys = await this.scanKeys(pattern);
       if (keys.length === 0) return 0;
-      
+
       const deleted = await this.del(...keys);
       this._logger.debug(`Deleted ${deleted} keys matching pattern: ${pattern}`);
       return deleted;
@@ -250,17 +266,13 @@ export class RedisService implements OnModuleInit {
   /**
    * Acquire a distributed lock
    */
-  async acquireLock(
-    key: string,
-    token: string,
-    ttlSeconds = 5
-  ): Promise<boolean> {
+  async acquireLock(key: string, token: string, ttlSeconds = 5): Promise<boolean> {
     try {
       const result = await this.client.set(key, token, {
         NX: true,
         EX: ttlSeconds,
       });
-      return result === 'OK';
+      return result === "OK";
     } catch (error) {
       this._logger.error(`Failed to acquire lock ${key}:`, error);
       return false;
@@ -291,18 +303,14 @@ export class RedisService implements OnModuleInit {
   /**
    * Wait until lock is available
    */
-  async waitForLock(
-    key: string,
-    retryDelay = 100,
-    maxRetries = 10
-  ): Promise<boolean> {
+  async waitForLock(key: string, retryDelay = 100, maxRetries = 10): Promise<boolean> {
     let retries = 0;
     while (retries < maxRetries) {
       const exists = await this.client.exists(key);
       if (!exists) {
         return true;
       }
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
       retries++;
     }
     return false;
@@ -361,7 +369,7 @@ export class RedisService implements OnModuleInit {
    * Use sparingly - prefer abstracted methods
    */
   getClient(): RedisClient {
-    this._logger.warn('Direct Redis client access - use abstracted methods when possible');
+    this._logger.warn("Direct Redis client access - use abstracted methods when possible");
     return this.client;
   }
 

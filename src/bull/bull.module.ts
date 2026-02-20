@@ -6,24 +6,24 @@ import { FirebaseModule } from "src/firebase/firebase.module";
 import { MailModule } from "src/mail/mail.module";
 import { NotificationsModule } from "src/notifications/notifications.module";
 import { OtpModule } from "src/otp/otp.module";
+import { BoostsModule } from "src/products/boosts/boosts.module";
+import { CachesModule } from "src/products/caches/caches.module";
+import { EventsModule } from "src/products/events/events.module";
+import { ProductsModule } from "src/products/products.module";
+import { RankingsModule } from "src/products/rankings/rankings.module";
+import { ProductStat } from "src/products/stats/entities/product_stats.entity";
+import { StatsModule } from "src/products/stats/stats.module";
 import { User } from "src/user/entities/user.entity";
 import { Verification } from "src/user/entities/verification.entity";
 import { UserModule } from "src/user/user.module";
 import { BullController } from "./bull.controller";
 import { BullService } from "./bull.service";
 import { AuthQueueProcessor } from "./processors/AuthenticationQueue";
-import { ProductStat } from "src/products/stats/entities/product_stats.entity";
-import { ProductsModule } from "src/products/products.module";
-import { CachesModule } from "src/products/caches/caches.module";
-import { StatsModule } from "src/products/stats/stats.module";
-import { EventsModule } from "src/products/events/events.module";
-import { BoostsModule } from "src/products/boosts/boosts.module";
-import { ProductRankingsModule } from "src/products/product_rankings/product_rankings.module";
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Verification, ProductStat]),
-    ,
+
     MailModule,
     FirebaseModule,
     NotificationsModule,
@@ -34,7 +34,7 @@ import { ProductRankingsModule } from "src/products/product_rankings/product_ran
     EventsModule,
     BoostsModule,
     StatsModule,
-    ProductRankingsModule,
+    RankingsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

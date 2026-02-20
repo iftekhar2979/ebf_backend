@@ -1,12 +1,12 @@
-import { Processor, Process, OnQueueError, OnQueueFailed } from '@nestjs/bull';
-import { Job } from 'bull';
-import { Injectable } from '@nestjs/common';
-import { ProductCacheService } from 'src/products/caches/caches.service';
-import { InjectLogger } from 'src/shared/decorators/logger.decorator';
-import { Logger } from 'winston';
-import { StatsService } from 'src/products/stats/stats.service';
-import { RedisService } from 'src/redis/redis.service';
-import { ProductRankingService } from 'src/products/product_rankings/product_rankings.service';
+import { OnQueueError, OnQueueFailed, Process, Processor } from "@nestjs/bull";
+import { Injectable } from "@nestjs/common";
+import { Job } from "bull";
+import { ProductCacheService } from "src/products/caches/caches.service";
+import { RankingsService } from "src/products/rankings/rankings.service";
+import { StatsService } from "src/products/stats/stats.service";
+import { RedisService } from "src/redis/redis.service";
+import { InjectLogger } from "src/shared/decorators/logger.decorator";
+import { Logger } from "winston";
 
 export interface ProductCreatedJob {
   productId: number;
@@ -70,20 +70,20 @@ export interface ProductDeletedJob {
   subCategoryId: number;
 }
 
-@Processor('product-queue')
+@Processor("product-queue")
 @Injectable()
 export class ProductQueueProcessor {
   constructor(
     private productCacheService: ProductCacheService,
     private productStatsService: StatsService,
-    private rankingService: ProductRankingService,
+    private rankingService: RankingsService,
     private readonly redisService: RedisService,
-    @InjectLogger() private readonly logger: Logger,
+    @InjectLogger() private readonly logger: Logger
   ) {}
 
-  @Process('product-created')
+  @Process("product-created")
   async handleProductCreated(job: Job<ProductCreatedJob>) {
-    this.logger.log('Processing product-created job for product', job.data.productId);
+    this.logger.log("Processing product-created job for product", job.data.productId);
 
     try {
       // Initialize product stats
@@ -99,16 +99,16 @@ export class ProductQueueProcessor {
         this.invalidateFeedCaches(),
       ]);
 
-      this.logger.log('Product stats and ranking initialized successfully', job.data.productId);
+      this.logger.log("Product stats and ranking initialized successfully", job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to process product-created job: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('increment-views')
+  @Process("increment-views")
   async handleIncrementViews(job: Job<IncrementViewsJob>) {
-    this.logger.debug('Incrementing views for product', job.data.productId);
+    this.logger.debug("Incrementing views for product", job.data.productId);
 
     try {
       // Increment stats in Redis/DB
@@ -118,20 +118,20 @@ export class ProductQueueProcessor {
       });
 
       // Update ranking (async, non-blocking)
-      this.rankingService.updateProductRanking(job.data.productId).catch(err => {
+      this.rankingService.updateProductRanking(job.data.productId).catch((err) => {
         this.logger.error(`Failed to update ranking after view increment: ${err.message}`);
       });
 
-      this.logger.debug('Views incremented for product', job.data.productId);
+      this.logger.debug("Views incremented for product", job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to increment views: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('increment-wishlists')
+  @Process("increment-wishlists")
   async handleIncrementWishlists(job: Job<IncrementWishlistsJob>) {
-    this.logger.debug('Incrementing wishlists for product', job.data.productId);
+    this.logger.debug("Incrementing wishlists for product", job.data.productId);
 
     try {
       // Increment wishlist count in Redis
@@ -140,16 +140,16 @@ export class ProductQueueProcessor {
       // Update ranking (wishlists have higher weight)
       await this.rankingService.updateProductRanking(job.data.productId);
 
-      this.logger.debug('Wishlists incremented for product', job.data.productId);
+      this.logger.debug("Wishlists incremented for product", job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to increment wishlists: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('increment-carts')
+  @Process("increment-carts")
   async handleIncrementCarts(job: Job<IncrementCartsJob>) {
-    this.logger.debug('Incrementing carts for product', job.data.productId);
+    this.logger.debug("Incrementing carts for product", job.data.productId);
 
     try {
       // Increment cart stats
@@ -161,16 +161,16 @@ export class ProductQueueProcessor {
       // Update ranking (carts have high weight)
       await this.rankingService.updateProductRanking(job.data.productId);
 
-      this.logger.debug('Carts incremented for product', job.data.productId);
+      this.logger.debug("Carts incremented for product", job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to increment carts: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('increment-orders')
+  @Process("increment-orders")
   async handleIncrementOrders(job: Job<IncrementOrdersJob>) {
-    this.logger.info('Incrementing orders for product', job.data.productId);
+    this.logger.info("Incrementing orders for product", job.data.productId);
 
     try {
       // Increment order stats
@@ -185,21 +185,19 @@ export class ProductQueueProcessor {
       // Invalidate feed caches (orders significantly affect trending)
       await this.invalidateFeedCaches();
 
-      this.logger.info('Orders incremented for product', job.data.productId);
+      this.logger.info("Orders incremented for product", job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to increment orders: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('sync-redis-stats-to-db')
+  @Process("sync-redis-stats-to-db")
   async handleSyncStats(job: Job<SyncRedisStatsJob>) {
-    this.logger.info('Syncing Redis stats to database');
+    this.logger.info("Syncing Redis stats to database");
 
     try {
-      const synced = await this.productStatsService.syncRedisToDatabase(
-        job.data.productIds,
-      );
+      const synced = await this.productStatsService.syncRedisToDatabase(job.data.productIds);
 
       // After syncing, update rankings for affected products
       if (job.data.productIds && job.data.productIds.length > 0) {
@@ -214,9 +212,9 @@ export class ProductQueueProcessor {
     }
   }
 
-  @Process('update-product-stats')
+  @Process("update-product-stats")
   async handleStatsUpdate(job: Job<ProductStatsUpdateJob>) {
-    this.logger.log('Updating stats for product', job.data.productId);
+    this.logger.log("Updating stats for product", job.data.productId);
 
     try {
       const updates: any = {};
@@ -251,29 +249,29 @@ export class ProductQueueProcessor {
         await this.rankingService.updateProductRanking(job.data.productId);
       }
 
-      this.logger.log('Stats updated for product', job.data.productId);
+      this.logger.log("Stats updated for product", job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to update product stats: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('update-ranking')
+  @Process("update-ranking")
   async handleRankingUpdate(job: Job<RankingUpdateJob>) {
-    this.logger.debug('Updating ranking for product', job.data.productId);
+    this.logger.debug("Updating ranking for product", job.data.productId);
 
     try {
       await this.rankingService.updateProductRanking(job.data.productId);
-      this.logger.debug('Ranking updated for product', job.data.productId);
+      this.logger.debug("Ranking updated for product", job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to update ranking: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('bulk-ranking-update')
+  @Process("bulk-ranking-update")
   async handleBulkRankingUpdate(job: Job<BulkRankingUpdateJob>) {
-    this.logger.info('Bulk updating rankings', job.data.productIds.length);
+    this.logger.info("Bulk updating rankings", job.data.productIds.length);
 
     try {
       await this.rankingService.batchUpdateRankings(job.data.productIds);
@@ -284,35 +282,34 @@ export class ProductQueueProcessor {
     }
   }
 
-  @Process('cache-warming')
+  @Process("cache-warming")
   async handleCacheWarming(job: Job<CacheWarmingJob>) {
-    this.logger.log('Warming cache', job.data.productIds.length);
+    this.logger.log("Warming cache", job.data.productIds.length);
 
     try {
       // Warm product stats cache
-      await Promise.all(
-        job.data.productIds.map(productId =>
-          this.productStatsService.getStats(productId),
-        ),
-      );
+      await Promise.all(job.data.productIds.map((productId) => this.productStatsService.getStats(productId)));
 
       // Pre-warm ranking positions for popular products
       await Promise.all(
-        job.data.productIds.slice(0, 100).map(productId =>
-          this.rankingService.getProductTrendingRank(productId).catch(() => null),
-        ),
+        job.data.productIds
+          .slice(0, 100)
+          .map((productId) => this.rankingService.getProductTrendingRank(productId).catch(() => null))
       );
 
-      this.logger.log(`Cache warming completed for ${job.data.productIds.length} products`);
+      // this.logger.log(
+      //   `Cache warming completed for ${job.data.productIds.length} products`,
+      //   job.data.productIds.length
+      // );
     } catch (error) {
-      this.logger.error(`Failed to warm cache: ${error.message}`, error.stack);
+      // this.logger.log(`Failed to warm cache: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('process-images')
+  @Process("process-images")
   async handleImageProcessing(job: Job<ImageProcessingJob>) {
-    this.logger.log('Processing images for product', job.data.productId);
+    this.logger.log("Processing images for product", job.data.productId);
 
     try {
       // Image optimization logic:
@@ -327,18 +324,16 @@ export class ProductQueueProcessor {
       // await this.imageService.uploadToCDN(optimizedImages);
       // await this.productService.updateImageUrls(job.data.productId, optimizedImages);
 
-      this.logger.log('Images processed for product', job.data.productId);
+      this.logger.log("Images processed for product", job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to process images: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('invalidate-cache')
-  async handleCacheInvalidation(
-    job: Job<{ productId: number; userId: string; subCategoryId: number }>,
-  ) {
-    this.logger.log('Invalidating cache for product', job.data.productId);
+  @Process("invalidate-cache")
+  async handleCacheInvalidation(job: Job<{ productId: number; userId: string; subCategoryId: number }>) {
+    this.logger.log("Invalidating cache for product", job.data.productId);
 
     try {
       // Invalidate product-specific caches
@@ -349,16 +344,16 @@ export class ProductQueueProcessor {
         this.invalidateFeedCaches(),
       ]);
 
-      this.logger.log('Cache invalidated for product', job.data.productId);
+      this.logger.log("Cache invalidated for product", job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to invalidate cache: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('product-deleted')
+  @Process("product-deleted")
   async handleProductDeleted(job: Job<ProductDeletedJob>) {
-    this.logger.log('Processing product deletion', job.data.productId);
+    this.logger.log("Processing product deletion", job.data.productId);
 
     try {
       // Remove from all rankings
@@ -373,18 +368,18 @@ export class ProductQueueProcessor {
         this.invalidateFeedCaches(),
       ]);
 
-      this.logger.log('Product removed from rankings and caches', job.data.productId);
+      this.logger.log("Product removed from rankings and caches", job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to process product deletion: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('product-updated')
+  @Process("product-updated")
   async handleProductUpdated(
-    job: Job<{ productId: number; userId: string; subCategoryId: number; hasDiscountChanged: boolean }>,
+    job: Job<{ productId: number; userId: string; subCategoryId: number; hasDiscountChanged: boolean }>
   ) {
-    this.logger.log('Processing product update', job.data.productId);
+    this.logger.log("Processing product update", job.data.productId);
 
     try {
       // Update ranking (especially important if discount changed)
@@ -402,16 +397,16 @@ export class ProductQueueProcessor {
         await this.invalidateFeedCaches();
       }
 
-      this.logger.log('Product updated, ranking refreshed', job.data.productId);
+      this.logger.log("Product updated, ranking refreshed", job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to process product update: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('boost-activated')
+  @Process("boost-activated")
   async handleBoostActivated(job: Job<{ productId: number }>) {
-    this.logger.info('Processing boost activation', job.data.productId);
+    this.logger.info("Processing boost activation", job.data.productId);
 
     try {
       // Boost significantly affects ranking
@@ -420,16 +415,16 @@ export class ProductQueueProcessor {
       // Invalidate trending feeds since boost affects trending score
       await this.invalidateFeedCaches();
 
-      this.logger.info('Boost activated, ranking updated', job.data.productId);
+      this.logger.info("Boost activated, ranking updated", job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to process boost activation: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  @Process('boost-deactivated')
+  @Process("boost-deactivated")
   async handleBoostDeactivated(job: Job<{ productId: number }>) {
-    this.logger.info('Processing boost deactivation', job.data.productId);
+    this.logger.info("Processing boost deactivation", job.data.productId);
 
     try {
       // Update ranking to remove boost multiplier
@@ -438,7 +433,7 @@ export class ProductQueueProcessor {
       // Invalidate trending feeds
       await this.invalidateFeedCaches();
 
-      this.logger.info('Boost deactivated, ranking updated', job.data.productId);
+      this.logger.info("Boost deactivated, ranking updated", job.data.productId);
     } catch (error) {
       this.logger.error(`Failed to process boost deactivation: ${error.message}`, error.stack);
       throw error;
@@ -452,17 +447,15 @@ export class ProductQueueProcessor {
     try {
       // Use Redis SCAN to find and delete all feed cache keys
       const patterns = [
-        'feed:home:*',
-        'feed:trending:*',
-        'feed:discounted:*',
-        'feed:category:*',
-        'feed:new-arrivals:*',
-        'feed:flash-sale:*',
+        "feed:home:*",
+        "feed:trending:*",
+        "feed:discounted:*",
+        "feed:category:*",
+        "feed:new-arrivals:*",
+        "feed:flash-sale:*",
       ];
 
-      await Promise.all(
-        patterns.map(pattern => this.redisService.delPattern(pattern)),
-      );
+      await Promise.all(patterns.map((pattern) => this.redisService.delPattern(pattern)));
     } catch (error) {
       this.logger.error(`Failed to invalidate feed caches: ${error.message}`);
       // Don't throw, as this is not critical
@@ -471,7 +464,7 @@ export class ProductQueueProcessor {
 
   @OnQueueError()
   handleError(error: Error) {
-    this.logger.error('Product queue error:', error);
+    this.logger.error("Product queue error:", error);
   }
 
   @OnQueueFailed()
@@ -486,15 +479,11 @@ export class ProductQueueProcessor {
     });
 
     // Critical job types that should trigger alerts
-    const criticalJobs = [
-      'increment-orders',
-      'sync-redis-stats-to-db',
-      'product-created',
-    ];
+    const criticalJobs = ["increment-orders", "sync-redis-stats-to-db", "product-created"];
 
     if (criticalJobs.includes(job.name)) {
       // Send alert for critical failures
-      this.logger.error('CRITICAL JOB FAILED - ALERT REQUIRED', {
+      this.logger.error("CRITICAL JOB FAILED - ALERT REQUIRED", {
         jobName: job.name,
         productId: job.data.productId,
       });
@@ -509,7 +498,7 @@ export class ProductQueueProcessor {
 
     // If max attempts reached, move to dead letter queue or log for manual review
     if (job.attemptsMade >= (job.opts.attempts || 3)) {
-      this.logger.error('Job exhausted all retries, manual intervention required', {
+      this.logger.error("Job exhausted all retries, manual intervention required", {
         jobId: job.id,
         jobName: job.name,
         data: job.data,
