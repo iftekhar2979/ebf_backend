@@ -2,6 +2,7 @@ import { OnQueueError, OnQueueFailed, Process, Processor } from "@nestjs/bull";
 import { Injectable } from "@nestjs/common";
 import { Job } from "bull";
 import { ProductCacheService } from "src/products/caches/caches.service";
+import { RankingsService } from "src/products/rankings/rankings.service";
 import { StatsService } from "src/products/stats/stats.service";
 import { RedisService } from "src/redis/redis.service";
 import { InjectLogger } from "src/shared/decorators/logger.decorator";
@@ -56,6 +57,7 @@ export class ProductQueueProcessor {
     private productCacheService: ProductCacheService,
     private productStatsService: StatsService,
     private readonly redisService: RedisService,
+    private readonly rankingService: RankingsService,
     @InjectLogger() private readonly logger: Logger
   ) {}
 
@@ -114,7 +116,7 @@ export class ProductQueueProcessor {
 
   @Process("increment-orders")
   async handleIncrementOrders(job: Job<IncrementOrdersJob>) {
-    this.logger.info(`Incrementing orders for product ${job.data.productId}`);
+    // this.logger.info(`Incrementing orders for product ${job.data.productId}`);
 
     try {
       await this.productStatsService.incrementStats({
@@ -122,7 +124,7 @@ export class ProductQueueProcessor {
         orders: job.data.quantity,
       });
 
-      this.logger.info(`Orders incremented for product ${job.data.productId}`);
+      // this.logger.info(`Orders incremented for product ${job.data.productId}`);
     } catch (error) {
       this.logger.error(`Failed to increment orders: ${error.message}`, error.stack);
       throw error;
@@ -131,12 +133,12 @@ export class ProductQueueProcessor {
 
   @Process("sync-redis-stats-to-db")
   async handleSyncStats(job: Job<SyncRedisStatsJob>) {
-    this.logger.info("Syncing Redis stats to database");
+    // this.logger.info("Syncing Redis stats to database");
 
     try {
       const synced = await this.productStatsService.syncRedisToDatabase(job.data.productIds);
 
-      this.logger.info(`Successfully synced ${synced} product stats`);
+      // this.logger.info(`Successfully synced ${synced} product stats`);
       return { synced };
     } catch (error) {
       this.logger.error(`Failed to sync stats: ${error.message}`, error.stack);
@@ -168,6 +170,8 @@ export class ProductQueueProcessor {
           ...updates,
         });
       }
+      console.log("Ranking Servic", job.data.productId);
+      await this.rankingService.incrementViewsAndUpdateRanking(job.data.productId);
 
       this.logger.log(`Stats updated for product `, job.data.productId);
     } catch (error) {

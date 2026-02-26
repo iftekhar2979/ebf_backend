@@ -414,7 +414,7 @@ export class EventsService {
    */
   @Cron(CronExpression.EVERY_30_MINUTES)
   async syncStatsToDatabase() {
-    this.logger.info("Starting stats sync to database");
+    // this.logger.info("Starting stats sync to database");
 
     // This will be handled by the stats service
     // We just need to trigger the job

@@ -18,6 +18,7 @@ import { CreateProductDto } from "./dto/create-product.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
 import { Product } from "./entities/product.entity";
 import { ProductImage } from "./images/entities/images.entity";
+import { RankingsService } from "./rankings/rankings.service";
 import { SubCategory } from "./sub_categories/entities/sub_categories.entity";
 import { ProductFilters } from "./types/productFilters";
 import { ProductVariant } from "./varients/entities/varients.entity";
@@ -29,7 +30,8 @@ export class ProductsService {
     private readonly productCacheService: ProductCacheService,
     @InjectLogger() private readonly logger: Logger,
     @InjectQueue("product-queue") private readonly productQueue: Queue,
-    @InjectRepository(Product) private readonly productRepository: Repository<Product>
+    @InjectRepository(Product) private readonly productRepository: Repository<Product>,
+    private readonly rankingService: RankingsService
   ) {}
 
   async create(createProductDto: CreateProductDto, user: User) {

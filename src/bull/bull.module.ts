@@ -12,6 +12,7 @@ import { BoostsModule } from "src/products/boosts/boosts.module";
 import { CachesModule } from "src/products/caches/caches.module";
 import { EventsModule } from "src/products/events/events.module";
 import { ProductsModule } from "src/products/products.module";
+import { RankingsModule } from "src/products/rankings/rankings.module";
 import { ProductStat } from "src/products/stats/entities/product_stats.entity";
 import { StatsModule } from "src/products/stats/stats.module";
 import { User } from "src/user/entities/user.entity";
@@ -36,6 +37,7 @@ import { AuthQueueProcessor } from "./processors/AuthenticationQueue";
     BoostsModule,
     StatsModule,
     CartsModule,
+    RankingsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

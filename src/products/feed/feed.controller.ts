@@ -48,7 +48,7 @@ export class FeedController {
     @Query("minPrice", new ParseIntPipe({ optional: true })) minPrice?: number,
     @Query("maxPrice", new ParseIntPipe({ optional: true })) maxPrice?: number,
     @Query("limit", new ParseIntPipe({ optional: true })) limit?: number,
-    @Query("offset", new ParseIntPipe({ optional: true })) offset?: number
+    @Query("page", new ParseIntPipe({ optional: true })) page?: number
   ) {
     const filters: FeedFilters = {
       subCategoryId,
@@ -57,7 +57,7 @@ export class FeedController {
       maxPrice,
     };
 
-    return this.feedService.getTrendingProducts(filters, limit || 20, offset || 0);
+    return this.feedService.getTrendingProducts(filters, limit || 20, page || 0);
   }
 
   /**

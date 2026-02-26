@@ -90,6 +90,7 @@ export class RankingsService {
         where: { id: productId },
         relations: ["stats", "boosting"],
       });
+      // console.log(product);
 
       if (!product) {
         this._logger.warn(`Product ${productId} not found for ranking update`);
@@ -101,7 +102,7 @@ export class RankingsService {
       );
 
       const score = this.calculateTrendingScore(product.stats, product.boosting, createdDaysAgo);
-
+      console.log("Score", score);
       // Add to trending sorted set
       await this._redisService.zadd(this.TRENDING_KEY, score, productId.toString());
 
@@ -154,9 +155,10 @@ export class RankingsService {
    */
   async getTrendingProducts(limit: number = 20, offset: number = 0): Promise<number[]> {
     try {
+      console.log(this.TRENDING_KEY, offset, limit);
       // Get product IDs from sorted set (highest score first)
-      const results = await this._redisService.zrange(this.TRENDING_KEY, offset, offset + limit - 1);
-
+      const results = await this._redisService.zrange(this.TRENDING_KEY, offset, limit);
+      console.log(results);
       return results.map((id: string) => parseInt(id, 10));
     } catch (error) {
       this._logger.error(`Failed to get trending products: ${error.message}`);
@@ -251,8 +253,8 @@ export class RankingsService {
    */
   async incrementViewsAndUpdateRanking(productId: number): Promise<void> {
     // Update stats
-    await this._productStatRepository.increment({ productId }, "viewCount", 1);
-
+    await this._productStatRepository.increment({ productId }, "totalViews", 1);
+    console.log(productId);
     // Update ranking
     await this.updateProductRanking(productId);
   }

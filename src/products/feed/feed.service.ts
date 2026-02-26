@@ -98,9 +98,9 @@ export class FeedService {
     offset: number = 0
   ): Promise<FlattenedProduct[]> {
     const cacheKey = `feed:trending:${JSON.stringify(filters)}:${limit}:${offset}`;
-    const cached = await this.cacheService.getProductList(cacheKey);
-    if (cached) return cached;
-
+    // const cached = await this.cacheService.getProductList(cacheKey);
+    // if (cached) return cached;
+    console.log(cacheKey);
     const productIds = await this.rankingService.getTrendingProducts(limit, offset);
     const products = await this.fetchAndFlattenProducts(productIds, filters);
 
@@ -137,8 +137,8 @@ export class FeedService {
   ): Promise<FlattenedProduct[]> {
     const cacheKey = `feed:new-arrivals:${JSON.stringify(filters)}:${limit}:${offset}`;
     const cached = await this.cacheService.getProductList(cacheKey);
+    console.log("Cached");
     if (cached) return cached;
-
     const productIds = await this.rankingService.getNewArrivals(limit, offset);
     const products = await this.fetchAndFlattenProducts(productIds, filters);
 

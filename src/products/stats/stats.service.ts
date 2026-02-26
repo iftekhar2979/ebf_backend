@@ -1,6 +1,6 @@
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import { Cron, CronExpression } from "@nestjs/schedule";
+import { Cron } from "@nestjs/schedule";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Queue } from "bullmq";
 import { ProductCreatedJob } from "src/bull/processors/productQueue";
@@ -414,11 +414,11 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (!idsToSync.length) {
-        this.logger.info("No products to sync");
+        this.logger.log("No products to sync", 0);
         return 0;
       }
 
-      this.logger.info(`Syncing stats for ${idsToSync.length} products`);
+      this.logger.log(`Syncing stats for ${idsToSync.length} products`, idsToSync.length);
       let synced = 0;
 
       // Process in SYNC_BATCH_SIZE chunks to avoid overwhelming the DB
@@ -437,10 +437,10 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
         // await this.flushDirtyStats();
         synced += batch.length;
 
-        this.logger.info(`Synced batch ${Math.ceil(i / SYNC_BATCH_SIZE) + 1}: ${synced} total`);
+        this.logger.log(`Synced batch ${Math.ceil(i / SYNC_BATCH_SIZE) + 1}: ${synced} total`, synced);
       }
 
-      this.logger.info(`Sync complete: ${synced} products updated`);
+      this.logger.log(`Sync complete: ${synced} products updated`, synced);
       return synced;
     } catch (err) {
       this.logger.error("Failed to sync stats to database:", err);
@@ -457,17 +457,10 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     );
     await this.initializeRedisCounters(productId);
     await this.redisService.del(K.cached(productId));
-    this.logger.info(`Stats reset for product ${productId}`);
+    this.logger.log(`Stats reset for product ${productId}`, productId);
   }
 
   // ─── Cron Jobs ─────────────────────────────────────────────────────────────
-
-  /** Full sync every 30 minutes as safety net */
-  @Cron(CronExpression.EVERY_30_MINUTES)
-  async scheduledSync() {
-    this.logger.info("Starting scheduled stats sync");
-    await this.syncRedisToDatabase();
-  }
 
   /** Flush dirty products every 10 seconds (fast path) */
   @Cron("*/10 * * * * *")
@@ -491,7 +484,8 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
 
   /** Atomically claim up to `limit` dirty product IDs */
   // private async popDirtyProducts(limit: number): Promise<number[]> {
-  //   const items = await this.redisService.getClient().zPopMin(K.dirtySet(), limit);
+  //   console.log(K.dirtySet());
+  //   const items = await this.redisService.popMinMembers(K.dirtySet());
   //   return items.map((item) => parseInt(item.value, 10));
   // }
 

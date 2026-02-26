@@ -93,9 +93,18 @@ export class RedisService implements OnModuleInit {
 
   async zrange(key: string, start: number, stop: number): Promise<string[]> {
     try {
+      console.log(key, start, stop);
       return await this.client.zRange(key, start, stop);
     } catch (error) {
       this._logger.error(`Failed to zRange key ${key}:`, error);
+      throw error;
+    }
+  }
+  async zRevRangeWithPagination(key: string, start: number, stop: number): Promise<string[]> {
+    try {
+      return await this.client.zRangeByScore(key, start, stop);
+    } catch (error) {
+      this._logger.error(`Failed to zRevRange key ${key}:`, error);
       throw error;
     }
   }
@@ -276,6 +285,15 @@ export class RedisService implements OnModuleInit {
     } catch (error) {
       this._logger.error(`Failed to acquire lock ${key}:`, error);
       return false;
+    }
+  }
+  async popMinMembers(key: string) {
+    try {
+      // ZPOPMIN returns a list of popped elements and their scores
+      const result = await this.client.zPopMin(key);
+      return result;
+    } catch (error) {
+      console.error("Error with ZPOPMIN:", error);
     }
   }
 

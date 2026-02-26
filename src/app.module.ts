@@ -47,6 +47,7 @@ import { BoostsModule } from "./products/boosts/boosts.module";
 import { CachesModule } from "./products/caches/caches.module";
 import { EventsModule } from "./products/events/events.module";
 import { FeedModule } from "./products/feed/feed.module";
+import { RankingsModule } from "./products/rankings/rankings.module";
 import { StatsModule } from "./products/stats/stats.module";
 import { ReviewsModule } from "./reviews/reviews.module";
 import { WishlistsModule } from "./wishlists/wishlists.module";
@@ -133,6 +134,7 @@ import { WishlistsModule } from "./wishlists/wishlists.module";
     StatsModule,
     PaymentsModule,
     FeedModule,
+    RankingsModule,
   ],
   controllers: [AppController],
   providers: [
