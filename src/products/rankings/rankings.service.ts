@@ -153,7 +153,7 @@ export class RankingsService {
   /**
    * Get trending products (highest scores)
    */
-  async getTrendingProducts(limit: number = 20, offset: number = 0): Promise<number[]> {
+  async getTrendingProducts({ limit, offset }: { limit: number; offset: number }): Promise<number[]> {
     try {
       console.log(this.TRENDING_KEY, offset, limit);
       // Get product IDs from sorted set (highest score first)
@@ -169,10 +169,11 @@ export class RankingsService {
   /**
    * Get discounted products (highest discount first)
    */
-  async getDiscountedProducts(limit: number = 20, offset: number = 0): Promise<number[]> {
+  async getDiscountedProducts({ limit, offset }: { limit: number; offset: number }): Promise<number[]> {
     try {
-      const results = await this._redisService.zrange(this.DISCOUNTED_KEY, offset, offset + limit - 1);
-
+      console.log(offset, limit);
+      const results = await this._redisService.zrange(this.DISCOUNTED_KEY, offset, limit);
+      console.log(results.map((id: string) => parseInt(id, 10)));
       return results.map((id: string) => parseInt(id, 10));
     } catch (error) {
       this._logger.error(`Failed to get discounted products: ${error.message}`);

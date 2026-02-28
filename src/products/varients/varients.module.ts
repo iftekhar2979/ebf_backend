@@ -1,9 +1,7 @@
 import { BullModule } from "@nestjs/bull";
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { ProductColor } from "../colors/entities/colors.entity";
 import { Product } from "../entities/product.entity";
-import { Size } from "../sizes/entities/sizes.entity";
 import { ProductVariant } from "./entities/varients.entity";
 import { VarientsController } from "./varients.controller";
 import { VarientsService } from "./varients.service";
@@ -14,7 +12,7 @@ import { CachesModule } from "../caches/caches.module";
   imports: [
     CachesModule,
     BullModule.registerQueue({ name: "product-queue" }),
-    TypeOrmModule.forFeature([Product, ProductVariant, Size, ProductColor]),
+    TypeOrmModule.forFeature([Product, ProductVariant]),
     BullModule.registerQueue({ name: "product-queue" }),
   ],
   controllers: [VarientsController],

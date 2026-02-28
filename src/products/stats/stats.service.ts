@@ -3,7 +3,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Queue } from "bullmq";
-import { ProductCreatedJob } from "src/bull/processors/productQueue";
+import { ProductCreatedJob } from "src/bull/processors/product/types/types";
 import { RedisService } from "src/redis/redis.service";
 import { InjectLogger } from "src/shared/decorators/logger.decorator";
 import { Repository } from "typeorm";

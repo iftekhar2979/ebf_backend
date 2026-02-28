@@ -20,7 +20,7 @@ import { JwtAuthenticationGuard } from "src/auth/guards/session-auth.guard";
 import { Roles } from "src/user/decorators/roles.decorator";
 import { User } from "src/user/entities/user.entity";
 import { UserRoles } from "src/user/enums/role.enum";
-import { CreateProductDto } from "./dto/create-product.dto";
+import { CreateProductDto } from "./dto/CreateProduct.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
 import { ProductsService } from "./products.service";
 import { ProductFilters } from "./types/productFilters";

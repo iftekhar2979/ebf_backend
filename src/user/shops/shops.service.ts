@@ -4,14 +4,14 @@ import {
   Injectable,
   InternalServerErrorException,
 } from "@nestjs/common";
-import { User, USER_STATUS } from "../entities/user.entity";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository } from "typeorm";
-import { ShopProfile } from "./entities/shop.entity";
-import { ShopAddress } from "./address/entities/address.entity";
 import { argon2hash } from "src/utils/hashes/argon2";
+import { DataSource, Repository } from "typeorm";
+import { User, USER_STATUS } from "../entities/user.entity";
 import { UserRoles } from "../enums/role.enum";
+import { ShopAddress } from "./address/entities/address.entity";
 import { ShopSignupDto } from "./dtos/Signup.dto";
+import { ShopProfile } from "./entities/shop.entity";
 
 @Injectable()
 export class ShopsService {
@@ -86,7 +86,6 @@ export class ShopsService {
         closingTime: signupDto.closingTime,
         facebookLink: signupDto.facebookLink,
         instagramLink: signupDto.instagramLink,
-        banner: signupDto.banner,
         availableDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], // Default all days
       });
 
@@ -99,8 +98,6 @@ export class ShopsService {
         city: signupDto.city,
         area: signupDto.area,
         postalCode: signupDto.postalCode,
-        latitude: signupDto.latitude,
-        longitude: signupDto.longitude,
       });
 
       await queryRunner.manager.save(ShopAddress, shopAddress);

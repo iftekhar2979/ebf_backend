@@ -10,11 +10,12 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Queue } from "bull";
+import { PRODUCT_PROCESSORS } from "src/bull/processors/product/types/types";
 import { InjectLogger } from "src/shared/decorators/logger.decorator";
 import { User } from "src/user/entities/user.entity";
 import { DataSource, Repository } from "typeorm";
 import { ProductCacheService } from "./caches/caches.service";
-import { CreateProductDto } from "./dto/create-product.dto";
+import { CreateProductDto } from "./dto/CreateProduct.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
 import { Product } from "./entities/product.entity";
 import { ProductImage } from "./images/entities/images.entity";
@@ -34,113 +35,186 @@ export class ProductsService {
     private readonly rankingService: RankingsService
   ) {}
 
+  // async create(createProductDto: CreateProductDto, user: User) {
+  //   if (!createProductDto.subCategoryId) {
+  //     throw new BadRequestException("subCategoryId is required");
+  //   }
+
+  //   if (!createProductDto.productName || createProductDto.productName.trim() === "") {
+  //     throw new BadRequestException("Product name is required");
+  //   }
+
+  //   if (!createProductDto.variants || !createProductDto.variants.length) {
+  //     throw new BadRequestException("At least one variant is required");
+  //   }
+
+  //   if (
+  //     !createProductDto.images ||
+  //     createProductDto.images.length < 2 ||
+  //     createProductDto.images.length > 5
+  //   ) {
+  //     throw new BadRequestException("Product must have between 2 and 5 images");
+  //   }
+
+  //   if (createProductDto.discountPercentage) {
+  //     if (!createProductDto.discountStartDate || !createProductDto.discountEndDate) {
+  //       throw new BadRequestException("Discount start and end dates are required when discount is set");
+  //     }
+  //     const startDate = new Date(createProductDto.discountStartDate);
+  //     const endDate = new Date(createProductDto.discountEndDate);
+  //     if (startDate >= endDate) {
+  //       throw new BadRequestException("Discount end date must be after start date");
+  //     }
+  //   }
+
+  //   // Step 2: Wrap DB operations in a transaction
+  //   const savedProduct = await this._dataSource.transaction(async (manager) => {
+  //     // Validate subCategory exists
+  //     const subCategory = await manager.findOne(SubCategory, {
+  //       where: { id: createProductDto.subCategoryId },
+  //     });
+  //     if (!subCategory) {
+  //       throw new BadRequestException("SubCategory not found");
+  //     }
+
+  //     // Create product
+  //     const product = manager.create(Product, {
+  //       productName: createProductDto.productName,
+  //       userId: user.id,
+  //       targetedGender: createProductDto.targetedGender,
+  //       subCategoryId: createProductDto.subCategoryId,
+  //       description: createProductDto.description,
+  //       discountPercentage: createProductDto.discountPercentage ?? null,
+  //       discountStartDate: createProductDto.discountStartDate
+  //         ? new Date(createProductDto.discountStartDate)
+  //         : null,
+  //       discountEndDate: createProductDto.discountEndDate ? new Date(createProductDto.discountEndDate) : null,
+  //     });
+
+  //     const savedProduct = await manager.save(product);
+
+  //     // Bulk insert variants
+  //     const variants = createProductDto.variants.map((variantDto) => ({
+  //       ...variantDto,
+  //       productId: savedProduct.id,
+  //     }));
+
+  //     await manager.createQueryBuilder().insert().into(ProductVariant).values(variants).execute();
+
+  //     // Bulk insert images
+  //     const images = createProductDto.images.map((imageDto) => ({
+  //       productId: savedProduct.id,
+  //       image: imageDto.image,
+  //     }));
+
+  //     await manager.createQueryBuilder().insert().into(ProductImage).values(images).execute();
+
+  //     return savedProduct;
+  //   });
+
+  //   // Step 3: Fire-and-forget async operations
+  //   this.productQueue.add(PRODUCT_PROCESSORS.PRODUCT_CREATION, {
+  //     productId: savedProduct.id,
+  //     userId: savedProduct.userId,
+  //     subCategoryId: savedProduct.subCategoryId,
+  //   });
+
+  //   this.productQueue.add(PRODUCT_PROCESSORS.IMAGE_PROCESSING, {
+  //     productId: savedProduct.id,
+  //     imageUrls: createProductDto.images.map((img) => img.image),
+  //   });
+
+  //   // Step 4: Return product (without extra find query)
+  //   return {
+  //     id: savedProduct.id,
+  //     productName: savedProduct.productName,
+  //     userId: savedProduct.userId,
+  //     subCategoryId: savedProduct.subCategoryId,
+  //     targetedGender: savedProduct.targetedGender,
+  //     description: savedProduct.description,
+  //     discountPercentage: savedProduct.discountPercentage,
+  //     discountStartDate: savedProduct.discountStartDate,
+  //     discountEndDate: savedProduct.discountEndDate,
+  //     variants: createProductDto.variants,
+  //     images: createProductDto.images,
+  //   };
+  // }
+
   async create(createProductDto: CreateProductDto, user: User) {
     if (!createProductDto.subCategoryId) {
       throw new BadRequestException("subCategoryId is required");
     }
 
-    if (!createProductDto.productName || createProductDto.productName.trim() === "") {
-      throw new BadRequestException("Product name is required");
-    }
-
-    if (!createProductDto.variants || !createProductDto.variants.length) {
-      throw new BadRequestException("At least one variant is required");
-    }
-
-    if (
-      !createProductDto.images ||
-      createProductDto.images.length < 2 ||
-      createProductDto.images.length > 5
-    ) {
-      throw new BadRequestException("Product must have between 2 and 5 images");
-    }
-
-    if (createProductDto.discountPercentage) {
-      if (!createProductDto.discountStartDate || !createProductDto.discountEndDate) {
-        throw new BadRequestException("Discount start and end dates are required when discount is set");
-      }
-      const startDate = new Date(createProductDto.discountStartDate);
-      const endDate = new Date(createProductDto.discountEndDate);
-      if (startDate >= endDate) {
-        throw new BadRequestException("Discount end date must be after start date");
-      }
-    }
-
-    // Step 2: Wrap DB operations in a transaction
     const savedProduct = await this._dataSource.transaction(async (manager) => {
-      // Validate subCategory exists
       const subCategory = await manager.findOne(SubCategory, {
         where: { id: createProductDto.subCategoryId },
       });
+
       if (!subCategory) {
         throw new BadRequestException("SubCategory not found");
       }
 
-      // Create product
+      // Handle Discount Days
+      const discountStartDate: Date | null = null;
+      const discountEndDate: Date | null = null;
+
+      // if (createProductDto.discountPercentage && createProductDto.discountDays) {
+      //   discountStartDate = new Date();
+      //   discountEndDate = new Date(createProductDto.discountEndDate);
+      // }
+
+      // Create Product
       const product = manager.create(Product, {
         productName: createProductDto.productName,
-        userId: user.id,
-        targetedGender: createProductDto.targetedGender,
-        subCategoryId: createProductDto.subCategoryId,
         description: createProductDto.description,
+        userId: user.id,
+        user: user,
+        subCategoryId: createProductDto.subCategoryId,
+        price: createProductDto.price,
+        targetedGender: createProductDto.targetedGender,
         discountPercentage: createProductDto.discountPercentage ?? null,
-        discountStartDate: createProductDto.discountStartDate
-          ? new Date(createProductDto.discountStartDate)
-          : null,
-        discountEndDate: createProductDto.discountEndDate ? new Date(createProductDto.discountEndDate) : null,
+        discountStartDate,
+        discountEndDate,
       });
 
       const savedProduct = await manager.save(product);
 
-      // Bulk insert variants
-      const variants = createProductDto.variants.map((variantDto) => ({
-        ...variantDto,
+      // 🔥 Flatten Variants
+      const variantEntities: Partial<ProductVariant>[] = [];
+
+      createProductDto.variants.forEach((variant) => {
+        variant.sizes.forEach((sizeObj) => {
+          variantEntities.push({
+            productId: savedProduct.id,
+            colorHex: variant.color_hex,
+            size: sizeObj.size,
+            unit: sizeObj.stock,
+            sku: `SKU-${savedProduct.id}-${variant.color_hex}-${sizeObj.size}`,
+            discount: createProductDto.discountPercentage ?? 0,
+          });
+        });
+      });
+
+      await manager.createQueryBuilder().insert().into(ProductVariant).values(variantEntities).execute();
+
+      // Insert Images
+      const imageEntities = createProductDto.images.map((url) => ({
         productId: savedProduct.id,
+        image: url, // assuming multer
       }));
 
-      await manager.createQueryBuilder().insert().into(ProductVariant).values(variants).execute();
-
-      // Bulk insert images
-      const images = createProductDto.images.map((imageDto) => ({
-        productId: savedProduct.id,
-        image: imageDto.image,
-      }));
-
-      await manager.createQueryBuilder().insert().into(ProductImage).values(images).execute();
+      await manager.createQueryBuilder().insert().into(ProductImage).values(imageEntities).execute();
 
       return savedProduct;
     });
 
-    // Step 3: Fire-and-forget async operations
-    this.productQueue.add("product-created", {
-      productId: savedProduct.id,
-      userId: savedProduct.userId,
-      subCategoryId: savedProduct.subCategoryId,
-    });
-
-    this.productQueue.add("process-images", {
-      productId: savedProduct.id,
-      imageUrls: createProductDto.images.map((img) => img.image),
-    });
-
-    // Step 4: Return product (without extra find query)
     return {
-      id: savedProduct.id,
-      productName: savedProduct.productName,
-      userId: savedProduct.userId,
-      subCategoryId: savedProduct.subCategoryId,
-      targetedGender: savedProduct.targetedGender,
-      description: savedProduct.description,
-      discountPercentage: savedProduct.discountPercentage,
-      discountStartDate: savedProduct.discountStartDate,
-      discountEndDate: savedProduct.discountEndDate,
-      variants: createProductDto.variants,
-      images: createProductDto.images,
+      message: "Product created successfully",
+      productId: savedProduct.id,
     };
   }
-
   async incrementView(productId: number) {
-    await this.productQueue.add("update-product-stats", {
+    await this.productQueue.add(PRODUCT_PROCESSORS.INCREAMENT_PRODUCT_VIEWS, {
       productId,
       incrementViews: true,
     });
@@ -219,7 +293,6 @@ export class ProductsService {
         `variant.id = (
       SELECT pv.id FROM product_varients pv
       WHERE pv."productId" = product.id
-      ORDER BY pv.price ASC
       LIMIT 1
     )`
       )
@@ -230,7 +303,8 @@ export class ProductsService {
         "image.id",
         "image.image",
         // "variant.id",
-        "variant.price",
+        "product.price",
+        "user",
         // "variant.discount",
         "shopProfile.name",
       ]);
@@ -247,9 +321,9 @@ export class ProductsService {
 
     // Price filter using join (more efficient than subquery)
     if (filters.minPrice !== undefined)
-      queryBuilder.andWhere("variant.price >= :minPrice", { minPrice: filters.minPrice });
+      queryBuilder.andWhere("product.price >= :minPrice", { minPrice: filters.minPrice });
     if (filters.maxPrice !== undefined)
-      queryBuilder.andWhere("variant.price <= :maxPrice", { maxPrice: filters.maxPrice });
+      queryBuilder.andWhere("product.price <= :maxPrice", { maxPrice: filters.maxPrice });
 
     // Discount filter
     if (filters.hasDiscount) {
@@ -271,16 +345,19 @@ export class ProductsService {
       .skip(skip)
       .take(limit)
       .getManyAndCount();
-    const flattenedProducts = products.map((product) => ({
-      id: product.id,
-      productName: product.productName,
-      // Since your join logic already limits this to 1 item, we just grab the first index
-      price: product.variants[0]?.price || null,
-      image: product.images[0]?.image || null,
-      shopName: product.user?.shopProfile?.name || null,
-      discountPercentage: product.discountPercentage,
-      reviews: 4,
-    }));
+    const flattenedProducts = products.map((product) => {
+      return {
+        id: product.id,
+        productName: product.productName,
+        // Since your join logic already limits this to 1 item, we just grab the first index
+        price: product.price || null,
+        image: product.images[0]?.image || null,
+        shopName: product.user?.shopProfile?.name || null,
+        discountPercentage: product.discountPercentage,
+        shopImage: product.user?.image,
+        reviews: 4,
+      };
+    });
     const result = {
       data: flattenedProducts,
       meta: {
@@ -321,14 +398,13 @@ export class ProductsService {
       const product = await this.productRepository
         .createQueryBuilder("product")
         .leftJoinAndSelect("product.variants", "variant")
-        .leftJoinAndSelect("variant.size", "size")
-        .leftJoinAndSelect("variant.color", "color")
         .leftJoinAndSelect("product.images", "image")
         .leftJoinAndSelect("product.subCategory", "subCategory")
         .leftJoinAndSelect("product.stats", "stats")
         .leftJoinAndSelect("product.rank", "rank")
         .where("product.id = :id", { id })
         .getOne();
+      console.log(product);
 
       if (!product) {
         throw new NotFoundException(`Product with ID ${id} not found`);

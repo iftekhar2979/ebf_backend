@@ -4,7 +4,6 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { BoostsModule } from "./boosts/boosts.module";
 import { CachesModule } from "./caches/caches.module";
 import { CategoriesModule } from "./categories/categories.module";
-import { ColorsModule } from "./colors/colors.module";
 import { Product } from "./entities/product.entity";
 import { EventsModule } from "./events/events.module";
 import { GlobalStatsModule } from "./global_stats/global_stats.module";
@@ -13,7 +12,6 @@ import { ProductsController } from "./products.controller";
 import { ProductsService } from "./products.service";
 import { RankingsModule } from "./rankings/rankings.module";
 import { RanksModule } from "./ranks/ranks.module";
-import { SizesModule } from "./sizes/sizes.module";
 import { StatsModule } from "./stats/stats.module";
 import { SubCategoriesModule } from "./sub_categories/sub_categories.module";
 import { VarientsModule } from "./varients/varients.module";
@@ -29,8 +27,6 @@ import { ViewsModule } from "./views/views.module";
     SubCategoriesModule,
     ViewsModule,
     VarientsModule,
-    SizesModule,
-    ColorsModule,
     RanksModule,
     ImagesModule,
     BoostsModule,

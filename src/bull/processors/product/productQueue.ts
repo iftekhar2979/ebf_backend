@@ -7,50 +7,19 @@ import { StatsService } from "src/products/stats/stats.service";
 import { RedisService } from "src/redis/redis.service";
 import { InjectLogger } from "src/shared/decorators/logger.decorator";
 import { Logger } from "winston";
+import {
+  CacheWarmingJob,
+  ImageProcessingJob,
+  IncrementCartsJob,
+  IncrementOrdersJob,
+  IncrementViewsJob,
+  PRODUCT_PROCESSORS,
+  ProductCreatedJob,
+  ProductStatsUpdateJob,
+  SyncRedisStatsJob,
+} from "./types/types";
 
-export interface ProductCreatedJob {
-  productId: number;
-  userId: string;
-  subCategoryId: number;
-}
-
-export interface ProductStatsUpdateJob {
-  productId: number;
-  incrementViews?: boolean;
-  incrementWishlists?: boolean;
-  incrementCarts?: boolean;
-}
-
-export interface IncrementViewsJob {
-  productId: number;
-}
-
-export interface IncrementCartsJob {
-  productId: number;
-  userId: number;
-  quantity: number;
-}
-
-export interface IncrementOrdersJob {
-  productId: number;
-  userId: number;
-  quantity: number;
-}
-
-export interface SyncRedisStatsJob {
-  productIds?: number[];
-}
-
-export interface CacheWarmingJob {
-  productIds: number[];
-}
-
-export interface ImageProcessingJob {
-  productId: number;
-  imageUrls: string[];
-}
-
-@Processor("product-queue")
+@Processor(PRODUCT_PROCESSORS.PROCESSOR)
 @Injectable()
 export class ProductQueueProcessor {
   constructor(
@@ -61,7 +30,7 @@ export class ProductQueueProcessor {
     @InjectLogger() private readonly logger: Logger
   ) {}
 
-  @Process("product-created")
+  @Process(PRODUCT_PROCESSORS.PRODUCT_CREATION)
   async handleProductCreated(job: Job<ProductCreatedJob>) {
     this.logger.log(`Processing product-created job for product `, job.data.productId);
 
@@ -80,7 +49,7 @@ export class ProductQueueProcessor {
     }
   }
 
-  @Process("increment-views")
+  @Process(PRODUCT_PROCESSORS.INCREAMENT_PRODUCT_VIEWS)
   async handleIncrementViews(job: Job<IncrementViewsJob>) {
     this.logger.debug(`Incrementing views for product ${job.data.productId}`);
 
@@ -97,7 +66,7 @@ export class ProductQueueProcessor {
     }
   }
 
-  @Process("increment-carts")
+  @Process(PRODUCT_PROCESSORS.INCREMENT_CARTS)
   async handleIncrementCarts(job: Job<IncrementCartsJob>) {
     this.logger.debug(`Incrementing carts for product ${job.data.productId}`);
 
@@ -114,7 +83,7 @@ export class ProductQueueProcessor {
     }
   }
 
-  @Process("increment-orders")
+  @Process(PRODUCT_PROCESSORS.INCREMENT_ORDERS)
   async handleIncrementOrders(job: Job<IncrementOrdersJob>) {
     // this.logger.info(`Incrementing orders for product ${job.data.productId}`);
 
@@ -131,7 +100,7 @@ export class ProductQueueProcessor {
     }
   }
 
-  @Process("sync-redis-stats-to-db")
+  @Process(PRODUCT_PROCESSORS.SYNC_REDIS_STATISTICS_TO_DB)
   async handleSyncStats(job: Job<SyncRedisStatsJob>) {
     // this.logger.info("Syncing Redis stats to database");
 
@@ -146,7 +115,7 @@ export class ProductQueueProcessor {
     }
   }
 
-  @Process("update-product-stats")
+  @Process(PRODUCT_PROCESSORS.UPDATE_PRODUCT_STATISTICS)
   async handleStatsUpdate(job: Job<ProductStatsUpdateJob>) {
     this.logger.log(`Updating stats for product ${job.data.productId}`, job.data.productId);
 
@@ -180,7 +149,7 @@ export class ProductQueueProcessor {
     }
   }
 
-  @Process("cache-warming")
+  @Process(PRODUCT_PROCESSORS.CACHE_WARMING)
   async handleCacheWarming(job: Job<CacheWarmingJob>) {
     this.logger.log(`Warming cache for ${job.data.productIds.length} products`, job.data.productIds.length);
 
@@ -195,7 +164,7 @@ export class ProductQueueProcessor {
     }
   }
 
-  @Process("process-images")
+  @Process(PRODUCT_PROCESSORS.IMAGE_PROCESSING)
   async handleImageProcessing(job: Job<ImageProcessingJob>) {
     this.logger.log(`Processing images for product ${job.data.productId}`, "");
 
@@ -215,7 +184,7 @@ export class ProductQueueProcessor {
     }
   }
 
-  @Process("invalidate-cache")
+  @Process(PRODUCT_PROCESSORS.INVALID_CACHE)
   async handleCacheInvalidation(job: Job<{ productId: number; userId: string; subCategoryId: number }>) {
     this.logger.log(`Invalidating cache for product ${job.data.productId}`, "");
 

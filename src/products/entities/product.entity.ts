@@ -1,24 +1,24 @@
+import { CartItem } from "src/carts/cart_items/entities/cart_items.entity";
 import { User } from "src/user/entities/user.entity";
+import { Wishlist } from "src/wishlists/entities/wishlists.entity";
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
+  Entity,
   Index,
-  ManyToOne,
   JoinColumn,
+  ManyToOne,
   OneToMany,
   OneToOne,
+  PrimaryGeneratedColumn,
 } from "typeorm";
+import { ProductBoosting } from "../boosts/entities/boosts.entity";
+import { ProductEvent } from "../events/entities/events.entity";
+import { ProductImage } from "../images/entities/images.entity";
+import { ProductRank } from "../ranks/entities/product_rank.entity";
+import { ProductStat } from "../stats/entities/product_stats.entity";
 import { SubCategory } from "../sub_categories/entities/sub_categories.entity";
 import { ProductVariant } from "../varients/entities/varients.entity";
-import { ProductImage } from "../images/entities/images.entity";
 import { ProductView } from "../views/entities/views.entity";
-import { ProductEvent } from "../events/entities/events.entity";
-import { ProductBoosting } from "../boosts/entities/boosts.entity";
-import { Wishlist } from "src/wishlists/entities/wishlists.entity";
-import { CartItem } from "src/carts/cart_items/entities/cart_items.entity";
-import { ProductStat } from "../stats/entities/product_stats.entity";
-import { ProductRank } from "../ranks/entities/product_rank.entity";
 
 export enum TargetedGender {
   MALE = "male",
@@ -32,6 +32,7 @@ export enum TargetedGender {
 @Index(["userId"])
 @Index("active_discounts", ["discountEndDate", "discountStartDate"])
 @Index("full_text_index", ["productName"])
+@Index("price_idx", ["price"])
 export class Product {
   @PrimaryGeneratedColumn()
   id: number;
@@ -62,6 +63,9 @@ export class Product {
 
   @Column({ type: "timestamp", nullable: true })
   discountEndDate: Date;
+
+  @Column({ type: "decimal", precision: 10, scale: 2 })
+  price: number;
 
   // Relationships
   @ManyToOne(() => User, (user) => user.products)

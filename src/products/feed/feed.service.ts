@@ -54,18 +54,18 @@ export class FeedService {
   async getHomeFeed(filters: FeedFilters = {}, page: number = 1): Promise<FeedResponse> {
     // 1. Check cache first
     const cacheKey = `feed:home:${JSON.stringify(filters)}:${page}`;
-    const cached = await this.cacheService.getProductList(cacheKey);
-    if (cached) {
-      this.logger.log("Returning home feed from cache");
-      return cached;
-    }
+    // const cached = await this.cacheService.getProductList(cacheKey);
+    // if (cached) {
+    //   this.logger.log("Returning home feed from cache");
+    //   return cached;
+    // }
 
     const limit = Math.min(filters.limit || 20, 100);
 
     // 2. Get product IDs from Redis sorted sets
     const [trendingIds, discountedIds] = await Promise.all([
-      this.rankingService.getTrendingProducts(20, 0),
-      this.rankingService.getDiscountedProducts(20, 0),
+      this.rankingService.getTrendingProducts({ limit: 20, offset: 0 }),
+      this.rankingService.getDiscountedProducts({ limit: 20, offset: 0 }),
     ]);
 
     // 3. Fetch and flatten trending products
@@ -101,7 +101,7 @@ export class FeedService {
     // const cached = await this.cacheService.getProductList(cacheKey);
     // if (cached) return cached;
     console.log(cacheKey);
-    const productIds = await this.rankingService.getTrendingProducts(limit, offset);
+    const productIds = await this.rankingService.getTrendingProducts({ limit, offset });
     const products = await this.fetchAndFlattenProducts(productIds, filters);
 
     await this.cacheService.setProductList(cacheKey, products);
@@ -120,7 +120,7 @@ export class FeedService {
     const cached = await this.cacheService.getProductList(cacheKey);
     if (cached) return cached;
 
-    const productIds = await this.rankingService.getDiscountedProducts(limit, offset);
+    const productIds = await this.rankingService.getDiscountedProducts({ limit, offset });
     const products = await this.fetchAndFlattenProducts(productIds, filters);
 
     await this.cacheService.setProductList(cacheKey, products);
@@ -174,7 +174,6 @@ export class FeedService {
         `variant.id = (
           SELECT pv.id FROM product_varients pv
           WHERE pv."productId" = product.id
-          ORDER BY pv.price ASC
           LIMIT 1
         )`
       )
@@ -184,18 +183,19 @@ export class FeedService {
         "product.id",
         "product.productName",
         "product.discountPercentage",
+        "product.price",
         "image.id",
         "image.image",
-        "variant.price",
         "shopProfile.name",
+        "shopProfile.logo",
       ])
       .where("product.id IN (:...productIds)", { productIds });
-
+    console.log(queryBuilder);
     // Apply filters
     this.applyFilters(queryBuilder, filters);
 
     const products = await queryBuilder.getMany();
-
+    console.log(products);
     // Maintain the order from productIds
     const productMap = new Map(products.map((p) => [p.id, p]));
     const orderedProducts = productIds.map((id) => productMap.get(id)).filter((p) => p !== undefined);
@@ -235,7 +235,6 @@ export class FeedService {
         `variant.id = (
           SELECT pv.id FROM product_varients pv
           WHERE pv."productId" = product.id
-          ORDER BY pv.price ASC
           LIMIT 1
         )`
       )
@@ -247,8 +246,9 @@ export class FeedService {
         "product.discountPercentage",
         "image.id",
         "image.image",
-        "variant.price",
+        "product.price",
         "shopProfile.name",
+        "user",
       ]);
 
     // Apply filters
@@ -307,10 +307,11 @@ export class FeedService {
     return products.map((product) => ({
       id: product.id,
       productName: product.productName,
-      price: product.variants?.[0]?.price || null,
+      price: product.price || null,
       image: product.images?.[0]?.image || null,
       shopName: product.user?.shopProfile?.name || null,
       discountPercentage: product.discountPercentage,
+      shopImage: product.user.image,
       reviews: 4, // TODO: Get from reviews table
     }));
   }

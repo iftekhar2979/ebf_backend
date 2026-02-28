@@ -1,15 +1,14 @@
+import { ApiProperty } from "@nestjs/swagger";
 import {
-  IsString,
   IsEmail,
   IsNotEmpty,
   IsOptional,
-  IsNumber,
-  Matches,
-  MinLength,
-  MaxLength,
+  IsString,
   IsUrl,
+  Matches,
+  MaxLength,
+  MinLength,
 } from "class-validator";
-import { ApiProperty } from "@nestjs/swagger";
 
 export class ShopSignupDto {
   @ApiProperty({ example: "John Doe", description: "Full name of the shop owner" })
@@ -36,16 +35,6 @@ export class ShopSignupDto {
   @IsNotEmpty()
   @MaxLength(255)
   shopAddress: string;
-
-  @ApiProperty({ example: 24.3636, description: "Latitude coordinate" })
-  @IsNumber()
-  @IsNotEmpty()
-  latitude: number;
-
-  @ApiProperty({ example: 88.6241, description: "Longitude coordinate" })
-  @IsNumber()
-  @IsNotEmpty()
-  longitude: number;
 
   @ApiProperty({ example: "Rajshahi", description: "City name" })
   @IsString()
@@ -98,22 +87,21 @@ export class ShopSignupDto {
   @IsOptional()
   @IsUrl()
   instagramLink?: string;
-
   @ApiProperty({
-    example: "https://example.com/banner.jpg",
-    description: "Banner image URL",
+    example: "https://instagram.com/myshop",
+    description: "Instagram profile link",
     required: false,
   })
   @IsOptional()
-  @IsString()
-  banner?: string;
+  @IsUrl()
+  logo?: string;
 
   @ApiProperty({ example: "SecurePass123!", description: "Password (min 8 characters)" })
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
-    message: "Password must contain at least one uppercase letter, one lowercase letter, and one number",
-  })
+  // @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+  //   message: "Password must contain at least one uppercase letter, one lowercase letter, and one number",
+  // })
   password: string;
 }

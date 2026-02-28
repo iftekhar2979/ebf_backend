@@ -1,33 +1,27 @@
 import { CartItem } from "src/carts/cart_items/entities/cart_items.entity";
 import { OrderItem } from "src/orders/items/entities/order_items.entity";
-import { ProductColor } from "src/products/colors/entities/colors.entity";
 import { Product } from "src/products/entities/product.entity";
-import { Size } from "src/products/sizes/entities/sizes.entity";
-import { Entity, PrimaryGeneratedColumn, Column, Index, ManyToOne, JoinColumn, OneToMany } from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity("product_varients")
-@Index("product_listing_optimization", ["productId", "colorId", "sizeId"])
-@Index("variant_price_idx", ["price"])
-@Index("color_filter", ["colorId"])
-@Index("color_price_filter", ["colorId", "price"])
+@Index("product_listing_optimization", ["productId", "size"])
+@Index("color_filter", ["colorHex"])
+@Index(["sku"], { unique: true })
 export class ProductVariant {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: "int" })
-  sizeId: number;
+  @Column({ type: "varchar" })
+  size: string;
 
-  @Column({ type: "int" })
-  colorId: number;
+  @Column({ type: "varchar" })
+  colorHex: string;
 
   @Column({ type: "varchar" })
   sku: string;
 
-  @Column({ type: "int" })
+  @Column({ type: "int", default: 1 })
   unit: number;
-
-  @Column({ type: "decimal", precision: 10, scale: 2 })
-  price: number;
 
   @Column({ type: "int", default: 0 })
   discount: number;
@@ -39,14 +33,6 @@ export class ProductVariant {
   @ManyToOne(() => Product, (product) => product.variants)
   @JoinColumn({ name: "productId" })
   product: Product;
-
-  @ManyToOne(() => Size, (size) => size.variants)
-  @JoinColumn({ name: "sizeId" })
-  size: Size;
-
-  @ManyToOne(() => ProductColor, (color) => color.variants)
-  @JoinColumn({ name: "colorId" })
-  color: ProductColor;
 
   @OneToMany(() => CartItem, (cartItem) => cartItem.productVariant)
   cartItems: CartItem[];

@@ -39,7 +39,7 @@ import { SocketModule } from "./socket/socket.module";
 
 import { BoostQueueProcessor } from "./bull/processors/Boost.queue.processor";
 import { EventQueueProcessor } from "./bull/processors/Event.queue.processor";
-import { ProductQueueProcessor } from "./bull/processors/productQueue";
+import { ProductQueueProcessor } from "./bull/processors/product/productQueue";
 import { CartsModule } from "./carts/carts.module";
 import { OrdersModule } from "./orders/orders.module";
 import { PaymentsModule } from "./payments/payments.module";

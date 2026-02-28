@@ -1,19 +1,19 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  Query,
-  ParseIntPipe,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
 } from "@nestjs/common";
-import { VarientsService } from "./varients.service";
 import { CreateProductVariantDto } from "src/products/dto/create-product.dto";
 import { UpdateProductVariantDto } from "src/products/dto/update-product.dto";
+import { VarientsService } from "./varients.service";
 
 @Controller("products/:productId/variants")
 export class VarientsController {
@@ -42,21 +42,21 @@ export class VarientsController {
     return this.varientsService.findByProduct(productId);
   }
 
-  @Get("by-color")
-  async findByColor(
-    @Param("productId", ParseIntPipe) productId: number,
-    @Query("colorId", ParseIntPipe) colorId: number
-  ) {
-    return this.varientsService.findByColor(productId, colorId);
-  }
+  // @Get("by-color")
+  // async findByColor(
+  //   @Param("productId", ParseIntPipe) productId: number,
+  //   @Query("colorId", ParseIntPipe) colorId: number
+  // ) {
+  //   return this.varientsService.findByColor(productId, colorId);
+  // }
 
-  @Get("by-size")
-  async findBySize(
-    @Param("productId", ParseIntPipe) productId: number,
-    @Query("sizeId", ParseIntPipe) sizeId: number
-  ) {
-    return this.varientsService.findBySize(productId, sizeId);
-  }
+  // @Get("by-size")
+  // async findBySize(
+  //   @Param("productId", ParseIntPipe) productId: number,
+  //   @Query("sizeId", ParseIntPipe) sizeId: number
+  // ) {
+  //   return this.varientsService.findBySize(productId, sizeId);
+  // }
 
   @Get("price-range")
   async findByPriceRange(
@@ -67,20 +67,20 @@ export class VarientsController {
     return this.varientsService.findByPriceRange(productId, minPrice, maxPrice);
   }
 
-  @Get("cheapest")
-  async getCheapest(@Param("productId", ParseIntPipe) productId: number) {
-    return this.varientsService.getCheapestVariant(productId);
-  }
+  // @Get("cheapest")
+  // async getCheapest(@Param("productId", ParseIntPipe) productId: number) {
+  //   return this.varientsService.getCheapestVariant(productId);
+  // }
 
-  @Get("available-colors")
-  async getAvailableColors(@Param("productId", ParseIntPipe) productId: number) {
-    return this.varientsService.getAvailableColors(productId);
-  }
+  // @Get("available-colors")
+  // async getAvailableColors(@Param("productId", ParseIntPipe) productId: number) {
+  //   return this.varientsService.getAvailableColors(productId);
+  // }
 
-  @Get("available-sizes")
-  async getAvailableSizes(@Param("productId", ParseIntPipe) productId: number) {
-    return this.varientsService.getAvailableSizes(productId);
-  }
+  // @Get("available-sizes")
+  // async getAvailableSizes(@Param("productId", ParseIntPipe) productId: number) {
+  //   return this.varientsService.getAvailableSizes(productId);
+  // }
 
   @Get(":id")
   async findOne(@Param("id", ParseIntPipe) id: number) {

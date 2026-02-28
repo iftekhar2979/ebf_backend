@@ -36,6 +36,8 @@ export class ShopProfile {
 
   @Column({ type: "varchar", nullable: true })
   banner: string;
+  @Column({ type: "varchar", nullable: true })
+  logo: string;
 
   // Relationships
   @OneToOne(() => User, (user) => user.shopProfile)
