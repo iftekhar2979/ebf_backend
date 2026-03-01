@@ -103,8 +103,9 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
       await this.productStatistics.save(product);
       await this.initializeRedisCounters(dto.productId);
 
-      this.logger.info(`Stats initialized for product ${dto.productId}`);
+      this.logger.log(`Stats initialized for product ${dto.productId}`, StatsService.name);
     } catch (err) {
+      console.log(err);
       this.logger.error(`Failed to create stats for product ${dto.productId}:`, err);
       throw err;
     }

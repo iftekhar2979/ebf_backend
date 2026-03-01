@@ -30,7 +30,7 @@ export class ProductsService {
     private readonly _dataSource: DataSource,
     private readonly productCacheService: ProductCacheService,
     @InjectLogger() private readonly logger: Logger,
-    @InjectQueue("product-queue") private readonly productQueue: Queue,
+    @InjectQueue(PRODUCT_PROCESSORS.PROCESSOR) private readonly productQueue: Queue,
     @InjectRepository(Product) private readonly productRepository: Repository<Product>,
     private readonly rankingService: RankingsService
   ) {}
@@ -207,6 +207,16 @@ export class ProductsService {
 
       return savedProduct;
     });
+    await this.productQueue.add(PRODUCT_PROCESSORS.PRODUCT_CREATION, {
+      productId: savedProduct.id,
+      userId: savedProduct.userId,
+      subCategoryId: savedProduct.subCategoryId,
+    });
+
+    // await this.productQueue.add(PRODUCT_PROCESSORS.IMAGE_PROCESSING, {
+    //   productId: savedProduct.id,
+    //   imageUrls: createProductDto.images.map((img) => img.image),
+    // });
 
     return {
       message: "Product created successfully",

@@ -1,6 +1,7 @@
 import { BullModule } from "@nestjs/bull";
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { PRODUCT_PROCESSORS } from "src/bull/processors/product/types/types";
 import { BoostsModule } from "./boosts/boosts.module";
 import { CachesModule } from "./caches/caches.module";
 import { CategoriesModule } from "./categories/categories.module";
@@ -22,7 +23,7 @@ import { ViewsModule } from "./views/views.module";
   providers: [ProductsService],
   imports: [
     TypeOrmModule.forFeature([Product]),
-    BullModule.registerQueue({ name: "product-queue" }),
+    BullModule.registerQueue({ name: PRODUCT_PROCESSORS.PROCESSOR }),
     CategoriesModule,
     SubCategoriesModule,
     ViewsModule,
