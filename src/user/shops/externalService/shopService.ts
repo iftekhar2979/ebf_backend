@@ -6,13 +6,16 @@ import {
     NotFoundException,
 } from "@nestjs/common";
 import { RedisService } from "src/redis/redis.service";
+import { User } from "src/user/entities/user.entity";
 import { SHOP_CACHE_KEYS, SHOP_CACHE_TTL } from "../constants/shop.cache.contants";
 import {
     CreateShopReviewDto,
     PaginatedResponse,
+    PaginationQueryDto,
     SearchShopsQueryDto,
     ShopDetailResponse,
     ShopListItem,
+    ShopReviewResponse,
 } from "../dto/shop.dto";
 import { ShopMapper } from "../mapper/shop.mapper";
 import { ShopRepository } from "../shop.repository";
@@ -40,7 +43,7 @@ export class ShopService {
     if (!shop) throw new NotFoundException(`Shop with id ${shopId} not found`);
 
     // 3. Fetch products + reviews in parallel
-    const [[rawProducts], rawReviews, averageRating] = await Promise.all([
+    const [[rawProducts], [rawReviews, count], averageRating] = await Promise.all([
       this._shopRepository.findProductsByShopUserId(shop.userId, 1, 20),
       this._shopRepository.findReviewsByShopId(shopId),
       this._shopRepository.getAverageRating(shopId),
@@ -98,24 +101,25 @@ export class ShopService {
 
   // ─── Reviews ──────────────────────────────────────────────────────────────
 
-  async createReview(shopId: number, userId: string, dto: CreateShopReviewDto): Promise<void> {
+  async createReview(shopId: number, user: User, dto: CreateShopReviewDto): Promise<{ message: string }> {
     // Validate shop exists
     const shop = await this._shopRepository.findShopById(shopId);
     if (!shop) throw new NotFoundException(`Shop with id ${shopId} not found`);
-
+    console.log(shop);
     // Prevent shop owner from reviewing their own shop
-    if (shop.userId === userId) {
+    if (shop.userId === user.id) {
       throw new BadRequestException("You cannot review your own shop");
     }
 
     // Prevent duplicate review
-    const existing = await this._shopRepository.findReviewByUserAndShop(userId, shopId);
+    const existing = await this._shopRepository.findReviewByUserAndShop(user.id, shopId);
     if (existing) throw new ConflictException("You have already reviewed this shop");
-
-    await this._shopRepository.saveReview({ shopId, userId, ...dto });
+    console.log(existing);
+    await this._shopRepository.saveReview({ shop, user, comment: dto.comment, rating: dto.rating });
 
     // Invalidate shop detail cache
     await this._invalidateShopCache(shopId);
+    return { message: "reviewed succesfully" };
   }
 
   async deleteReview(shopId: number, userId: string): Promise<void> {
@@ -124,6 +128,27 @@ export class ShopService {
 
     await this._shopRepository.deleteReview(review.id);
     await this._invalidateShopCache(shopId);
+  }
+
+  async getShopReviews(
+    shopId: number,
+    query: PaginationQueryDto
+  ): Promise<PaginatedResponse<ShopReviewResponse>> {
+    const shop = await this._shopRepository.findShopById(shopId);
+    if (!shop) throw new NotFoundException(`Shop with id ${shopId} not found`);
+
+    const [reviews, total] = await this._shopRepository.findReviewsByShopId(shopId);
+    const data = reviews.map(ShopMapper.toShopReviewResponse);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: query.page,
+        limit: query.limit,
+        totalPages: Math.ceil(total / query.limit),
+      },
+    };
   }
 
   // ─── Cache Helpers ────────────────────────────────────────────────────────

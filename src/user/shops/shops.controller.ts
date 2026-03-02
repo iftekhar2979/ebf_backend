@@ -5,9 +5,11 @@ import { User } from "../entities/user.entity";
 import {
     CreateShopReviewDto,
     PaginatedResponse,
+    PaginationQueryDto,
     SearchShopsQueryDto,
     ShopDetailResponse,
     ShopListItem,
+    ShopReviewResponse,
 } from "./dto/shop.dto";
 import { ShopService } from "./externalService/shopService";
 
@@ -44,9 +46,9 @@ export class ShopsController {
   async createReview(
     @Param("shopId", ParseIntPipe) shopId: number,
     @Body() dto: CreateShopReviewDto,
-    @GetUser("id") userId: string
+    @GetUser() user: User
   ): Promise<{ message: string }> {
-    await this._shopService.createReview(shopId, userId, dto);
+    await this._shopService.createReview(shopId, user, dto);
     return { message: "Review submitted successfully" };
   }
 
@@ -62,5 +64,13 @@ export class ShopsController {
   ): Promise<{ message: string }> {
     await this._shopService.deleteReview(shopId, user.id);
     return { message: "Review deleted successfully" };
+  }
+
+  @Get(":shopId/reviews")
+  async getShopReviews(
+    @Param("shopId", ParseIntPipe) shopId: number,
+    @Query() query: PaginationQueryDto
+  ): Promise<PaginatedResponse<ShopReviewResponse>> {
+    return this._shopService.getShopReviews(shopId, query);
   }
 }

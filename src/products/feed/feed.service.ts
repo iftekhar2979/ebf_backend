@@ -54,11 +54,11 @@ export class FeedService {
   async getHomeFeed(filters: FeedFilters = {}, page: number = 1): Promise<FeedResponse> {
     // 1. Check cache first
     const cacheKey = `feed:home:${JSON.stringify(filters)}:${page}`;
-    // const cached = await this.cacheService.getProductList(cacheKey);
-    // if (cached) {
-    //   this.logger.log("Returning home feed from cache");
-    //   return cached;
-    // }
+    const cached = await this.cacheService.getProductList(cacheKey);
+    if (cached) {
+      this.logger.log("Returning home feed from cache");
+      return cached;
+    }
 
     const limit = Math.min(filters.limit || 20, 100);
 

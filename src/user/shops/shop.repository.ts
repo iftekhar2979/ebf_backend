@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Product } from "src/products/entities/product.entity";
 import { Repository } from "typeorm";
+import { User } from "../entities/user.entity";
 import { SearchShopsQueryDto } from "./dto/shop.dto";
 import { ShopProfile } from "./entities/shop.entity";
 import { ShopReview } from "./reviews/enitites/reviews.entity";
@@ -79,8 +80,8 @@ export class ShopRepository {
 
   // ─── Reviews ───────────────────────────────────────────────────────────────
 
-  async findReviewsByShopId(shopId: number): Promise<ShopReview[]> {
-    return this.shopReviewRepo.find({
+  async findReviewsByShopId(shopId: number) {
+    return this.shopReviewRepo.findAndCount({
       where: { shopId },
       relations: ["user"],
       order: { createdAt: "DESC" },
@@ -91,7 +92,19 @@ export class ShopRepository {
     return this.shopReviewRepo.findOne({ where: { userId, shopId } });
   }
 
-  async saveReview(review: Partial<ShopReview>): Promise<ShopReview> {
+  async saveReview({
+    comment,
+    rating,
+    user,
+    shop,
+  }: {
+    shop: ShopProfile;
+    comment: string;
+    rating: number;
+    user: User;
+  }): Promise<ShopReview> {
+    const review = await this.shopReviewRepo.create({ shop, user, comment, rating });
+    // console.log("REview", review);
     return this.shopReviewRepo.save(review);
   }
 
