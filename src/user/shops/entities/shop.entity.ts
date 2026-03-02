@@ -1,6 +1,8 @@
 import { User } from "src/user/entities/user.entity";
-import { Column, Entity, Index, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, Index, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { ShopAddress } from "../address/entities/address.entity";
+import { ShopReview } from "../reviews/enitites/reviews.entity";
+
 @Entity("shop_profiles")
 export class ShopProfile {
   @PrimaryGeneratedColumn()
@@ -36,6 +38,7 @@ export class ShopProfile {
 
   @Column({ type: "varchar", nullable: true })
   banner: string;
+
   @Column({ type: "varchar", nullable: true })
   logo: string;
 
@@ -46,4 +49,7 @@ export class ShopProfile {
 
   @OneToOne(() => ShopAddress, (shopAddress) => shopAddress.shop)
   shopAddress: ShopAddress;
+
+  @OneToMany(() => ShopReview, (review) => review.shop)
+  reviews: ShopReview[];
 }

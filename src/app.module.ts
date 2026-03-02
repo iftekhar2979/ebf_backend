@@ -49,7 +49,7 @@ import { EventsModule } from "./products/events/events.module";
 import { FeedModule } from "./products/feed/feed.module";
 import { RankingsModule } from "./products/rankings/rankings.module";
 import { StatsModule } from "./products/stats/stats.module";
-import { ReviewsModule } from "./reviews/reviews.module";
+import { ReviewsModule } from "./user/shops/reviews/reviews.module";
 import { WishlistsModule } from "./wishlists/wishlists.module";
 /**
  * It is the root module for the application in we import all feature modules and configure modules and packages that are common in feature modules. Here we also configure the middlewares.

@@ -311,7 +311,7 @@ export class FeedService {
       image: product.images?.[0]?.image || null,
       shopName: product.user?.shopProfile?.name || null,
       discountPercentage: product.discountPercentage,
-      shopImage: product.user.image,
+      // shopImage: product.user.image,
       reviews: 4, // TODO: Get from reviews table
     }));
   }

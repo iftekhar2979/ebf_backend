@@ -1,32 +1,30 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Exclude } from "class-transformer";
+import { Cart } from "src/carts/entities/carts.entity";
+import { Notification } from "src/notifications/entities/notifications.entity";
+import { Order } from "src/orders/entities/orders.entity";
+import { ConversationParticipant } from "src/participants/entities/participants.entity";
+import { Product } from "src/products/entities/product.entity";
+import { ProductEvent } from "src/products/events/entities/events.entity";
+import { ProductView } from "src/products/views/entities/views.entity";
+import { Reel } from "src/reels/entities/reels.entity";
+import { Wishlist } from "src/wishlists/entities/wishlists.entity";
 import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
   Index,
-  JoinColumn,
   ManyToMany,
-  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
 import { UserRoles } from "../enums/role.enum";
-import { ShopProfile } from "../shops/entities/shop.entity";
-import { Reel } from "src/reels/entities/reels.entity";
-import { Product } from "src/products/entities/product.entity";
-import { ProductView } from "src/products/views/entities/views.entity";
-import { ProductEvent } from "src/products/events/entities/events.entity";
-import { Wishlist } from "src/wishlists/entities/wishlists.entity";
-import { Cart } from "src/carts/entities/carts.entity";
-import { Order } from "src/orders/entities/orders.entity";
-import { Review } from "src/reviews/entities/reviews.entity";
 import { ShippingInfo } from "../shipping_informations/entities/shipping_informations.entity";
-import { Notification } from "src/notifications/entities/notifications.entity";
-import { ConversationParticipant } from "src/participants/entities/participants.entity";
+import { ShopProfile } from "../shops/entities/shop.entity";
+import { ShopReview } from "../shops/reviews/enitites/reviews.entity";
 
 export enum USER_STATUS {
   VERIFIED = "verified",
@@ -124,11 +122,11 @@ export class User {
   @OneToMany(() => Order, (order) => order.user)
   orders: Order[];
 
-  @ManyToMany(() => Review, (review) => review.user)
-  reviewsGiven: Review[];
+  // @ManyToMany(() => Review, (review) => review.user)
+  // reviewsGiven: Review[];
 
-  @ManyToMany(() => Review, (review) => review.shop)
-  reviewsReceived: Review[];
+  @ManyToMany(() => ShopReview, (review) => review.shop)
+  reviewsReceived: ShopReview[];
 
   @OneToMany(() => ShippingInfo, (shippingInfo) => shippingInfo.user)
   shippingInfos: ShippingInfo[];

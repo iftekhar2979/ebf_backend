@@ -386,11 +386,11 @@ export class ProductsService {
 
   async findOne(id: number) {
     // 1️⃣ Try cache first
-    const cached = await this.productCacheService.getProduct(id);
-    if (cached) {
-      this.logger.log(`Returning product ${id} from cache`);
-      return cached;
-    }
+    // const cached = await this.productCacheService.getProduct(id);
+    // if (cached) {
+    //   this.logger.log(`Returning product ${id} from cache`);
+    //   return cached;
+    // }
 
     // 2️⃣ Acquire distributed lock (anti-cache-stampede)
     const lockKey = `lock:product:${id}`;
@@ -410,8 +410,10 @@ export class ProductsService {
         .leftJoinAndSelect("product.variants", "variant")
         .leftJoinAndSelect("product.images", "image")
         .leftJoinAndSelect("product.subCategory", "subCategory")
-        .leftJoinAndSelect("product.stats", "stats")
-        .leftJoinAndSelect("product.rank", "rank")
+        .leftJoinAndSelect("product.user", "user")
+        .leftJoinAndSelect("user.shopProfile", "shopProfile")
+        // .leftJoinAndSelect("product.stats", "stats")
+        // .leftJoinAndSelect("product.rank", "rank")
         .where("product.id = :id", { id })
         .getOne();
       console.log(product);
