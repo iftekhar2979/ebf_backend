@@ -26,8 +26,14 @@ export class ReelsController {
   }
 
   @Get()
-  findAllPublic(@Query() query: {page: number, limit: number}) {
-    return this.reelsService.findAllPublic(query);
+  // Try to extract user via guard, but don't strictly require it so public users can still view reels
+//   @UseGuards(JwtAuthenticationGuard) 
+  findAllPublic(
+    @Query() query: {page: number, limit: number},
+    @GetUser() user: User
+  ) {
+    const userId = user?.id; // will be undefined if no user
+    return this.reelsService.findAllPublic({ ...query, userId });
   }
 
   @Get(':id')

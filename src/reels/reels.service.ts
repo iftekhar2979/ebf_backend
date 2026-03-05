@@ -34,12 +34,21 @@ export class ReelsService {
     return savedReel;
   }
 
-  async findAllPublic({page,limit}: {page: number, limit: number}): Promise<{ items: Reel[]; total: number }> {
-
+  async findAllPublic({
+    page,
+    limit,
+    userId,
+  }: {
+    page: number;
+    limit: number;
+    userId?: string;
+  }): Promise<{ items: Reel[]; total: number }> {
     page = page || 1;
     limit = limit || 10;
     const skip = (page - 1) * limit;
-    const cacheKey = `${this.REELS_CACHE_KEY}_page_${page}_limit_${limit}`;
+    
+    // Include user id in cache key so sorted outputs don't conflict
+    const cacheKey = `${this.REELS_CACHE_KEY}_page_${page}_limit_${limit}_user_${userId || "anon"}`;
 
     const cached = await this.redisService.getCache(cacheKey);
     if (cached) {
@@ -62,7 +71,25 @@ export class ReelsService {
       take: limit,
     });
 
-    const result = { items, total };
+    let viewSortedItems = items;
+
+    if (userId) {
+      // Find which items the user has viewed from our Redis Quick Access Cache
+      const viewChecks = await Promise.all(
+        items.map(async (reel) => {
+          const viewedKey = `reel_view_${userId}_${reel.id}`;
+          const isViewed = await this.redisService.getCache(viewedKey);
+          return { reel, isViewed: !!isViewed };
+        })
+      );
+
+      const unviewed = viewChecks.filter((vc) => !vc.isViewed).map((vc) => vc.reel);
+      const viewed = viewChecks.filter((vc) => vc.isViewed).map((vc) => vc.reel);
+
+      viewSortedItems = [...unviewed, ...viewed];
+    }
+
+    const result = { items: viewSortedItems, total };
     await this.redisService.setCacheWithTTL(
       cacheKey,
       JSON.stringify(result),

@@ -15,6 +15,7 @@ import { ProductsModule } from "src/products/products.module";
 import { RankingsModule } from "src/products/rankings/rankings.module";
 import { ProductStat } from "src/products/stats/entities/product_stats.entity";
 import { StatsModule } from "src/products/stats/stats.module";
+import { ReelViewsModule } from "src/reels/views/views.module";
 import { User } from "src/user/entities/user.entity";
 import { Verification } from "src/user/entities/verification.entity";
 import { UserModule } from "src/user/user.module";
@@ -38,6 +39,7 @@ import { AuthQueueProcessor } from "./processors/AuthenticationQueue";
     StatsModule,
     CartsModule,
     RankingsModule,
+    ReelViewsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

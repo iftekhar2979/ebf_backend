@@ -40,6 +40,7 @@ import { SocketModule } from "./socket/socket.module";
 import { BoostQueueProcessor } from "./bull/processors/Boost.queue.processor";
 import { EventQueueProcessor } from "./bull/processors/Event.queue.processor";
 import { ProductQueueProcessor } from "./bull/processors/product/productQueue";
+import { ReelsViewProcessor } from "./bull/processors/ReelsViewQueue";
 import { CartsModule } from "./carts/carts.module";
 import { OrdersModule } from "./orders/orders.module";
 import { PaymentsModule } from "./payments/payments.module";
@@ -49,6 +50,8 @@ import { EventsModule } from "./products/events/events.module";
 import { FeedModule } from "./products/feed/feed.module";
 import { RankingsModule } from "./products/rankings/rankings.module";
 import { StatsModule } from "./products/stats/stats.module";
+import { ViewsModule } from "./products/views/views.module";
+import { ReelViewsModule } from "./reels/views/views.module";
 import { ReviewsModule } from "./user/shops/reviews/reviews.module";
 import { WishlistsModule } from "./wishlists/wishlists.module";
 /**
@@ -134,6 +137,8 @@ import { WishlistsModule } from "./wishlists/wishlists.module";
     StatsModule,
     PaymentsModule,
     FeedModule,
+    ViewsModule,
+    ReelViewsModule,
     RankingsModule,
   ],
   controllers: [AppController],
@@ -150,6 +155,8 @@ import { WishlistsModule } from "./wishlists/wishlists.module";
     SeederService,
     BoostQueueProcessor,
     EventQueueProcessor,
+    ReelsViewProcessor,
+    
     // ProductBoostgSer,vice,
   ],
 })
