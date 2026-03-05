@@ -1,15 +1,15 @@
 import { User } from "src/user/entities/user.entity";
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
   DeleteDateColumn,
+  Entity,
   Index,
-  ManyToOne,
   JoinColumn,
+  ManyToOne,
   OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from "typeorm";
 import { ReelViewer } from "../views/entities/reels_viewers.entity";
 
@@ -31,13 +31,13 @@ export class Reel {
   @Column({ type: "varchar" })
   url: string;
 
-  @Column({ type: "int" })
-  userId: number;
+  @Column({ type: "varchar" })
+  userId: string;
 
   @Column({
     type: "enum",
     enum: ReelStatus,
-    default: ReelStatus.DRAFT,
+    default: ReelStatus.PUBLIC,
   })
   status: ReelStatus;
 
