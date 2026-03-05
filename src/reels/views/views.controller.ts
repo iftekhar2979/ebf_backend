@@ -16,7 +16,7 @@ export class ViewsController {
     @Param('reelId', ParseIntPipe) reelId: number,
     @GetUser() user: User
   ) {
-    const userId = Number(user?.id) || 1; 
+    const userId = user?.id
     await this.viewsService.trackView(reelId, userId);
     return { success: true, message: 'View tracked' };
   }

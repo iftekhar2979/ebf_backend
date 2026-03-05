@@ -23,7 +23,7 @@ export class ViewsService {
     private readonly logger: Logger,
   ) {}
 
-  async trackView(reelId: number, userId: number): Promise<void> {
+  async trackView(reelId: number, userId: string): Promise<void> {
     const cacheKey = `${REEL_VIEWED_BY_USER_PREFIX}${userId}_${reelId}`;
 
     // 1. Check if user already viewed this reel in quick-access Redis cache
