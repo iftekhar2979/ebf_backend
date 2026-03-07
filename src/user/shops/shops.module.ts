@@ -7,6 +7,7 @@ import { AddressModule } from "./address/address.module";
 import { ShopAddress } from "./address/entities/address.entity";
 import { ShopProfile } from "./entities/shop.entity";
 import { ShopService } from "./externalService/shopService";
+import { FavouritesModule } from "./favourites/favourites.module";
 import { ShopReview } from "./reviews/enitites/reviews.entity";
 import { ReviewsModule } from "./reviews/reviews.module";
 import { ShopRepository } from "./shop.repository";
@@ -21,6 +22,7 @@ import { ShopsService } from "./shops.service";
     TypeOrmModule.forFeature([ShopAddress, User, Verification, ShopProfile, ShopReview, Product]),
     AddressModule,
     ReviewsModule,
+    FavouritesModule,
   ],
 })
 export class ShopsModule {}

@@ -10,20 +10,21 @@ import { ProductView } from "src/products/views/entities/views.entity";
 import { Reel } from "src/reels/entities/reels.entity";
 import { Wishlist } from "src/wishlists/entities/wishlists.entity";
 import {
-  Column,
-  CreateDateColumn,
-  DeleteDateColumn,
-  Entity,
-  Index,
-  ManyToMany,
-  OneToMany,
-  OneToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
+    Column,
+    CreateDateColumn,
+    DeleteDateColumn,
+    Entity,
+    Index,
+    ManyToMany,
+    OneToMany,
+    OneToOne,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn,
 } from "typeorm";
 import { UserRoles } from "../enums/role.enum";
 import { ShippingInfo } from "../shipping_informations/entities/shipping_informations.entity";
 import { ShopProfile } from "../shops/entities/shop.entity";
+import { FavouriteShop } from "../shops/favourites/entities/favourite.entity";
 import { ShopReview } from "../shops/reviews/enitites/reviews.entity";
 
 export enum USER_STATUS {
@@ -136,6 +137,9 @@ export class User {
 
   @ManyToMany(() => ConversationParticipant, (participant) => participant.user)
   conversationParticipants: ConversationParticipant[];
+
+  @OneToMany(() => FavouriteShop, (favourite) => favourite.user)
+  favouriteShops: FavouriteShop[];
 
   // @OneToMany(() => Message, (message) => message.sender)
   // messages: Message[];

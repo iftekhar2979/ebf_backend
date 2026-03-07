@@ -1,6 +1,7 @@
 import { User } from "src/user/entities/user.entity";
 import { Column, Entity, Index, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { ShopAddress } from "../address/entities/address.entity";
+import { FavouriteShop } from "../favourites/entities/favourite.entity";
 import { ShopReview } from "../reviews/enitites/reviews.entity";
 
 @Entity("shop_profiles")
@@ -52,4 +53,7 @@ export class ShopProfile {
 
   @OneToMany(() => ShopReview, (review) => review.shop)
   reviews: ShopReview[];
+
+  @OneToMany(() => FavouriteShop, (favourite) => favourite.shop)
+  favourites: FavouriteShop[];
 }

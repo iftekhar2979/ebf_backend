@@ -4,10 +4,9 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUrl,
   Matches,
   MaxLength,
-  MinLength,
+  MinLength
 } from "class-validator";
 
 export class ShopSignupDto {
@@ -75,8 +74,8 @@ export class ShopSignupDto {
     description: "Facebook page link",
     required: false,
   })
+  // @IsUrl()
   @IsOptional()
-  @IsUrl()
   facebookLink?: string;
 
   @ApiProperty({
@@ -84,8 +83,8 @@ export class ShopSignupDto {
     description: "Instagram profile link",
     required: false,
   })
+  // @IsUrl()
   @IsOptional()
-  @IsUrl()
   instagramLink?: string;
   @ApiProperty({
     example: "https://instagram.com/myshop",
@@ -93,7 +92,7 @@ export class ShopSignupDto {
     required: false,
   })
   @IsOptional()
-  @IsUrl()
+  // @IsUrl()
   logo?: string;
 
   @ApiProperty({ example: "SecurePass123!", description: "Password (min 8 characters)" })
