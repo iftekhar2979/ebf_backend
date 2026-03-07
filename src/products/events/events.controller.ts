@@ -1,20 +1,24 @@
 import {
-  Controller,
-  Post,
-  Get,
   Body,
-  Param,
-  Query,
-  ParseIntPipe,
+  Controller,
+  Get,
   HttpCode,
   HttpStatus,
-  UseGuards,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+  UseGuards
 } from "@nestjs/common";
-import { EventsService, TrackEventDto } from "./events.service";
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from "@nestjs/swagger";
-import { IsEnum, IsInt, IsPositive, IsOptional, Min, Max } from "class-validator";
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { Type } from "class-transformer";
+import { IsEnum, IsInt, IsOptional, IsPositive, IsString, Max, Min } from "class-validator";
+import { RolesGuard } from "src/auth/guards/roles-auth.guard";
+import { JwtAuthenticationGuard } from "src/auth/guards/session-auth.guard";
+import { Roles } from "src/user/decorators/roles.decorator";
+import { UserRoles } from "src/user/enums/role.enum";
 import { ProductEventType } from "./entities/events.entity";
+import { EventsService } from "./events.service";
 
 // DTOs
 export class TrackEventRequestDto {
@@ -22,9 +26,8 @@ export class TrackEventRequestDto {
   @IsPositive()
   productId: number;
 
-  @IsInt()
-  @IsPositive()
-  userId: number;
+  @IsString()
+  userId: string;
 
   @IsEnum(ProductEventType)
   eventType: ProductEventType;
@@ -63,10 +66,12 @@ export class GetTrendingQueryDto {
 
 @ApiTags("Product Events")
 @Controller("events")
+@UseGuards(JwtAuthenticationGuard, RolesGuard)
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
   @Post("track")
+  @Roles(UserRoles.USER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Track a product event" })
   @ApiResponse({ status: 200, description: "Event tracked successfully" })
@@ -82,6 +87,7 @@ export class EventsController {
   }
 
   @Post("track/batch")
+  @Roles(UserRoles.SHOP_OWNER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Track multiple events in a batch" })
   @ApiResponse({ status: 200, description: "Batch tracking completed" })
@@ -97,6 +103,7 @@ export class EventsController {
   }
 
   @Get("product/:productId/stats")
+    @Roles(UserRoles.SHOP_OWNER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Get real-time event stats for a product" })
   @ApiResponse({ status: 200, description: "Stats retrieved successfully" })
@@ -105,6 +112,7 @@ export class EventsController {
   }
 
   @Get("product/:productId/history")
+    @Roles(UserRoles.SHOP_OWNER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Get event history for a product" })
   @ApiResponse({ status: 200, description: "Event history retrieved successfully" })
@@ -116,6 +124,7 @@ export class EventsController {
   }
 
   @Get("product/:productId/conversion-funnel")
+    @Roles(UserRoles.SHOP_OWNER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Get conversion funnel metrics for a product" })
   @ApiResponse({ status: 200, description: "Conversion funnel retrieved successfully" })
@@ -124,6 +133,7 @@ export class EventsController {
   }
 
   @Get("trending")
+  @Roles(UserRoles.SHOP_OWNER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Get trending products based on recent events" })
   @ApiResponse({ status: 200, description: "Trending products retrieved successfully" })
@@ -134,11 +144,12 @@ export class EventsController {
   // Quick tracking endpoints for common events
 
   @Post("view/:productId")
+  @Roles(UserRoles.USER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Quick track a product view" })
   async trackView(
     @Param("productId", ParseIntPipe) productId: number,
-    @Body("userId", ParseIntPipe) userId: number
+    @Body("userId", ParseIntPipe) userId: string
   ) {
     return this.eventsService.trackEvent({
       productId,
@@ -148,11 +159,12 @@ export class EventsController {
   }
 
   @Post("cart/:productId")
+  @Roles(UserRoles.USER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Quick track add to cart" })
   async trackCart(
     @Param("productId", ParseIntPipe) productId: number,
-    @Body("userId", ParseIntPipe) userId: number,
+    @Body("userId", ParseIntPipe) userId: string,
     @Body("quantity") quantity?: number
   ) {
     return this.eventsService.trackEvent({
@@ -163,13 +175,13 @@ export class EventsController {
     });
   }
 
-  @Post("order/:productId")
+  @Post("order/:productId") 
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Quick track an order" })
   @ApiBearerAuth()
   async trackOrder(
     @Param("productId", ParseIntPipe) productId: number,
-    @Body("userId", ParseIntPipe) userId: number,
+    @Body("userId") userId: string,
     @Body("quantity") quantity?: number
   ) {
     return this.eventsService.trackEvent({

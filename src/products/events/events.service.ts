@@ -11,10 +11,10 @@ import { ProductEvent, ProductEventType } from "./entities/events.entity";
 
 export interface TrackEventDto {
   productId: number;
-  userId: number;
+  userId: string;
   eventType: ProductEventType;
   quantity?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface EventStats {
@@ -70,7 +70,7 @@ export class EventsService {
   private async incrementEventCounters(
     productId: number,
     eventType: ProductEventType,
-    userId: number
+    userId: string
   ): Promise<void> {
     const promises: Promise<any>[] = [];
 
