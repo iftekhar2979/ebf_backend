@@ -1,15 +1,33 @@
+import { ConfigService } from "@nestjs/config";
 import { Test, TestingModule } from "@nestjs/testing";
-import { StripeController } from "./webhook.controller";
+import { WebhookController } from "./webhook.controller";
+import { WebhookService } from "./webhook.service";
 
-describe("StripeController", () => {
-  let controller: StripeController;
+describe("WebhookController", () => {
+  let controller: WebhookController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [StripeController],
+      controllers: [WebhookController],
+      providers: [
+        {
+          provide: WebhookService,
+          useValue: {},
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn(),
+          },
+        },
+        {
+          provide: "winston",
+          useValue: {},
+        },
+      ],
     }).compile();
 
-    controller = module.get<StripeController>(StripeController);
+    controller = module.get<WebhookController>(WebhookController);
   });
 
   it("should be defined", () => {

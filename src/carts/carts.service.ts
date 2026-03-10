@@ -41,7 +41,7 @@ export class CartService {
     const cacheKey = CART_KEY(userId);
 
     // 1. Try cache
-    const cached = await this.redisService.get(cacheKey);
+    const cached = await this.redisService.get<string>(cacheKey);
     if (cached) return JSON.parse(cached) as Cart;
 
     // 2. DB fallback – one query with items + variants
@@ -225,7 +225,7 @@ export class CartService {
    * Get item count from Redis counter (for badge display).
    */
   async getCartItemCount(userId: number): Promise<number> {
-    const raw = await this.redisService.get(CART_ITEM_COUNT_KEY(userId));
+    const raw = await this.redisService.get<string>(CART_ITEM_COUNT_KEY(userId));
     if (raw !== null) return parseInt(raw, 10);
 
     // Fallback: compute from DB and cache

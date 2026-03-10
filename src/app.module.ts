@@ -1,23 +1,25 @@
 import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { WinstonModule } from "nest-winston";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { AuthModule } from "./auth/auth.module";
+import { QueueModule } from "./bull/bull.module";
+import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
+import { TimeoutInterceptor } from "./common/interceptors/timeout.interceptor";
 import { winstonLoggerConfig } from "./configs/winston.config";
 import { PostgreSQLDatabaseModule } from "./database/postgresql.module";
 import { HealthModule } from "./health/health.module";
 import { MailModule } from "./mail/mail.module";
 import { OtpModule } from "./otp/otp.module";
 import { S3Module } from "./s3/s3.module";
+import { SearchModule } from "./search/search.module";
 import { LoggerMiddleware } from "./shared/middlewares/logger.middleware";
 import { SseModule } from "./sse/sse.module";
 import { UserModule } from "./user/user.module";
 import { envSchema } from "./utils/env.validation";
-// import { ElasticsearchModule } from "@nestjs/elasticsearch";
-import { SearchModule } from "./search/search.module";
 
 import { StripeModule } from "./stripe/stripe.module";
 // import { StripController } from './strip/strip.controller';
@@ -37,6 +39,7 @@ import { SeederService } from "./seeder/seeder.service";
 import { SettingsModule } from "./settings/settings.module";
 import { SocketModule } from "./socket/socket.module";
 
+import { AuthQueueProcessor } from "./bull/processors/AuthenticationQueue";
 import { BoostQueueProcessor } from "./bull/processors/Boost.queue.processor";
 import { EventQueueProcessor } from "./bull/processors/Event.queue.processor";
 import { ProductQueueProcessor } from "./bull/processors/product/productQueue";
@@ -120,7 +123,7 @@ import { WishlistsModule } from "./wishlists/wishlists.module";
     FirebaseModule,
     StripeModule,
     RedisModule,
-    BullModule,
+    QueueModule,
     GeminiModule,
     SettingsModule,
     SocketModule,
@@ -141,12 +144,20 @@ import { WishlistsModule } from "./wishlists/wishlists.module";
     ReelViewsModule,
     RankingsModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, ],
   providers: [
     AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TimeoutInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionFilter,
     },
     // BullQueueProcessor,
     // ImageProcessor,
@@ -156,6 +167,7 @@ import { WishlistsModule } from "./wishlists/wishlists.module";
     BoostQueueProcessor,
     EventQueueProcessor,
     ReelsViewProcessor,
+    AuthQueueProcessor,
     
     // ProductBoostgSer,vice,
   ],

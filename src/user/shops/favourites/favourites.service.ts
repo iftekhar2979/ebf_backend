@@ -50,7 +50,7 @@ export class FavouritesService {
     const { page = 1, limit = 10 } = paginationDto;
     const cacheKey = `${this.getCacheKey(user.id)}:p${page}:l${limit}`;
 
-    const cachedData = await this.redisService.get(cacheKey);
+    const cachedData = await this.redisService.get<string>(cacheKey);
     if (cachedData) {
       return JSON.parse(cachedData);
     }
@@ -84,7 +84,7 @@ export class FavouritesService {
 
   async isFavourite(userId: string, shopId: number): Promise<{ isFavourite: boolean; shopId: number }> {
     const cacheKey = `${this.getCacheKey(userId)}:isFav:${shopId}`;
-    const cached = await this.redisService.get(cacheKey);
+    const cached = await this.redisService.get<string>(cacheKey);
 
     if (cached !== null) {
       return { isFavourite: cached === "true", shopId };
@@ -101,7 +101,7 @@ export class FavouritesService {
 
   async getFavouriteShopIds(userId: string): Promise<number[]> {
     const cacheKey = `${this.getCacheKey(userId)}:ids`;
-    const cached = await this.redisService.get(cacheKey);
+    const cached = await this.redisService.get<string>(cacheKey);
 
     if (cached) {
       return JSON.parse(cached);
@@ -112,8 +112,8 @@ export class FavouritesService {
       select: ["shopId"],
     });
 
-    const result = favourites.map((f) => f.shopId);
-    await this.redisService.setEx(cacheKey, JSON.stringify(result), 3600);
-    return result;
+    const ids = favourites.map((fav) => fav.shopId);
+    await this.redisService.setEx(cacheKey, JSON.stringify(ids), 3600);
+    return ids;
   }
 }

@@ -12,8 +12,8 @@ import { UpdateUserProfileDto } from "./dto/update-profile.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { User } from "./entities/user.entity";
 import { UserRoles } from "./enums/role.enum";
-import { ShopsService } from "./shops/shops.service";
 import { ShopSignupDto } from "./shops/dtos/Signup.dto";
+import { ShopsService } from "./shops/shops.service";
 
 /**
  * This service contain contains methods and business logic related to user.
@@ -147,7 +147,7 @@ export class UserService {
     // 3. Save to Redis
     if (user) {
       // Serialize Object to string
-      await client.set(cacheKey, JSON.stringify(user), { EX: 3600 });
+      await client.set(cacheKey, JSON.stringify(user));
     }
 
     return user;

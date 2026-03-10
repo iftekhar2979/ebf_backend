@@ -54,7 +54,7 @@ export class ProductReviewsService {
     const { page = 1, limit = 10 } = paginationDto;
     const cacheKey = `${this.getCacheKey(productId)}:p${page}:l${limit}`;
 
-    const cachedData = await this.redisService.get(cacheKey);
+    const cachedData = await this.redisService.get<string>(cacheKey);
     if (cachedData) {
       return JSON.parse(cachedData);
     }

@@ -381,7 +381,7 @@ export class AuthService {
     const attemptKey = `login:fail:${email}:${ip}`;
 
     // 🔐 STEP 1: brute-force check
-    const attempts = await this._redisService.getLoginAttempts(attemptKey);
+    const attempts = await this._redisService.get<number>(attemptKey);
     if (attempts >= 5) {
       throw new HttpException("Too many login attempts. Try again later.", HttpStatus.TOO_MANY_REQUESTS);
     }
@@ -394,19 +394,19 @@ export class AuthService {
       .getOne();
 
     if (!user) {
-      await this._redisService.incrementLoginAttempts(attemptKey);
+      await this._redisService.incr(attemptKey);
       throw new UnauthorizedException("Invalid credentials");
     }
 
     // 2️⃣ Verify password
     const isPasswordValid = await argon2verify(user.password, password);
     if (!isPasswordValid) {
-      await this._redisService.incrementLoginAttempts(attemptKey);
+      await this._redisService.incr(attemptKey);
       throw new UnauthorizedException("Invalid credentials");
     }
 
     // ✅ SUCCESS — reset attempts
-    await this._redisService.resetLoginAttempts(attemptKey);
+    await this._redisService.del(attemptKey);
 
     // 3️⃣ Tokens
     const { accessToken, refreshToken } = await this.generateTokens(user);
@@ -416,11 +416,11 @@ export class AuthService {
     // const hashedRT = await argon2hash(refreshToken);
     const hashedRT = createHash("sha256").update(refreshToken).digest("hex");
     this._logger.log(`Storing refresh token in Redis REFERESH== ${hashedRT}`, AuthService.name);
-    await this._redisService.getClient().set(REFERESH_TOKEN_CACHE_KEY, hashedRT, { EX: REFRESH_TOKEN_TTL });
+    await this._redisService.setWithOptions(REFERESH_TOKEN_CACHE_KEY, hashedRT, { EX: REFRESH_TOKEN_TTL });
 
-    if (fcm) {
-      await this._authQueue.add("fcm_store", { user, fcm });
-    }
+    // if (fcm) {
+    //   await this._authQueue.add("fcm_store", { user, fcm });
+    // }
 
     return {
       ok: true,
@@ -578,7 +578,7 @@ export class AuthService {
     // FIX: Hash 'newRefreshToken', NOT the old 'refresh_token' from the DTO
     const newHashedRT = createHash("sha256").update(newRefreshToken).digest("hex");
 
-    await this._redisService.getClient().set(cacheKey, newHashedRT, { EX: REFRESH_TOKEN_TTL });
+    await this._redisService.setWithOptions(cacheKey, newHashedRT, { EX: REFRESH_TOKEN_TTL });
     return {
       ok: true,
       tokens: {

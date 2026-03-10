@@ -9,12 +9,9 @@ import { InjectLogger } from "src/shared/decorators/logger.decorator";
 import { Repository } from "typeorm";
 import { Logger } from "winston";
 import { ProductView } from "./entities/views.entity";
+
 @Injectable()
 export class ViewsService implements OnModuleInit, OnModuleDestroy {
-  /**
-   * In-memory micro-buffer (single instance).
-   * For multi-instance deployments, this is backed by Redis list (see pushToBuffer).
-   */
   private localBuffer: ProductViewJobData[] = [];
   private flushTimer: NodeJS.Timeout | null = null;
 
@@ -28,7 +25,6 @@ export class ViewsService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    // Kick off periodic flush as fallback to threshold-based flush
     this.flushTimer = setInterval(() => this.flushBuffer(), 5_000);
   }
 
@@ -36,12 +32,6 @@ export class ViewsService implements OnModuleInit, OnModuleDestroy {
     if (this.flushTimer) clearInterval(this.flushTimer);
   }
 
-  // ─── Public API ──────────────────────────────────────────────────────────────
-
-  /**
-   * Track a product view.
-   * O(1) – writes to Redis buffer. Does NOT touch the DB.
-   */
   async trackView(productId: number, userId: number): Promise<void> {
     const payload = {
       productId,
@@ -49,7 +39,6 @@ export class ViewsService implements OnModuleInit, OnModuleDestroy {
       viewedAt: new Date().toISOString(),
     };
 
-    // Push to Redis list (atomic, works across replicas)
     await this.redisService
       .eval(
         `redis.call('RPUSH', KEYS[1], ARGV[1])
@@ -59,16 +48,11 @@ export class ViewsService implements OnModuleInit, OnModuleDestroy {
       )
       .then(async (length: number) => {
         if (length >= PRODUCT_VIEW_FLUSH_THRESHOLD) {
-          // Enqueue a flush job immediately (debounced by BullMQ deduplication)
           await this.enqueueFlusJob();
         }
       });
   }
 
-  /**
-   * Read paginated view history for a user.
-   * Uses the DB index `user_history` [userId, viewedAt].
-   */
   async getUserViewHistory(userId: number, page = 1, limit = 20): Promise<ProductView[]> {
     return this.productViewRepo.find({
       where: { userId },
@@ -79,22 +63,12 @@ export class ViewsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /**
-   * Get total view count for a product (served from Redis counter – O(1)).
-   */
   async getProductViewCount(productId: number): Promise<number> {
-    const raw = await this.redisService.get(`product:${productId}:views`);
+    const raw = await this.redisService.get<string>(`product:${productId}:views`);
     return raw ? parseInt(raw, 10) : 0;
   }
 
-  // ─── Flush Logic ─────────────────────────────────────────────────────────────
-
-  /**
-   * Drain the Redis buffer and bulk-insert into PostgreSQL.
-   * Called either by BullMQ worker or by the cron fallback.
-   */
   async flushBuffer(): Promise<void> {
-    // LMPOP atomically pops N items – no double processing.
     const items = await this.drainRedisBuffer();
     if (!items.length) return;
 
@@ -108,20 +82,17 @@ export class ViewsService implements OnModuleInit, OnModuleDestroy {
     });
 
     try {
-      // Single bulk INSERT – one DB round-trip for the whole batch
       await this.productViewRepo
         .createQueryBuilder()
         .insert()
         .into(ProductView)
         .values(views)
-        .orIgnore() // idempotent on duplicate (productId+userId+viewedAt)
+        .orIgnore()
         .execute();
 
-      // Fire-and-forget: update Redis counters per product
       const countMap = this.groupByProduct(items);
       await this.incrementViewCounters(countMap);
 
-      // Enqueue stat aggregation job (one per flush batch)
       await this.viewQueue.add(
         "aggregate_view_stats",
         { countMap },
@@ -131,28 +102,22 @@ export class ViewsService implements OnModuleInit, OnModuleDestroy {
       this.logger.info(`[ProductView] Flushed ${views.length} views to DB`);
     } catch (err) {
       this.logger.error("[ProductView] Flush failed, re-queuing", err);
-      // Re-push failed items back to buffer head for retry
       await this.requeueItems(items);
     }
   }
-
-  // ─── Private Helpers ─────────────────────────────────────────────────────────
 
   private async enqueueFlusJob(): Promise<void> {
     await this.viewQueue.add(
       PRODUCT_VIEW_FLUSH_JOB,
       {},
       {
-        jobId: "flush-views-singleton", // deduplication key
+        jobId: "flush-views-singleton",
         removeOnComplete: 10,
         removeOnFail: 5,
       }
     );
   }
 
-  /**
-   * Atomically drain up to 500 items from the Redis list.
-   */
   private async drainRedisBuffer(): Promise<string[]> {
     const BATCH = 500;
     const script = `
@@ -176,9 +141,10 @@ export class ViewsService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async incrementViewCounters(countMap: Record<number, number>): Promise<void> {
-    const pipeline = this.redisService.getClient().multi();
+    const client = this.redisService.getClient();
+    const pipeline = client.multi();
     for (const [productId, count] of Object.entries(countMap)) {
-      pipeline.incrBy(`product:${productId}:views`, count);
+      pipeline.incrby(`product:${productId}:views`, count);
     }
     await pipeline.exec();
   }

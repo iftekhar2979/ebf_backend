@@ -1,8 +1,8 @@
-import { InjectQueue } from "@nestjs/bull";
+import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Queue } from "bull";
+import { Queue } from "bullmq";
 import { RedisService } from "src/redis/redis.service";
 import { InjectLogger } from "src/shared/decorators/logger.decorator";
 import { Repository } from "typeorm";
@@ -39,34 +39,19 @@ export class EventsService {
     @InjectLogger() private readonly logger: Logger
   ) {}
 
-  /**
-   * Track a product event with high-performance buffering
-   * Uses Redis for fast writes, then batch processes to PostgreSQL
-   */
   async trackEvent(dto: TrackEventDto): Promise<{ tracked: boolean; buffered: boolean }> {
     try {
-      // 1. Immediate Redis increment for real-time stats
       await this.incrementEventCounters(dto.productId, dto.eventType, dto.userId);
-
-      // 2. Buffer event for batch processing
       const buffered = await this.bufferEvent(dto);
-
-      // 3. Queue async jobs based on event type
       await this.queueEventJobs(dto);
-
       this.logger.debug(`Event tracked: ${dto.eventType} for product ${dto.productId}`);
-
       return { tracked: true, buffered };
     } catch (error) {
       this.logger.error(`Failed to track event: ${error.message}`, error.stack);
-      // Don't throw - tracking failures shouldn't break user flow
       return { tracked: false, buffered: false };
     }
   }
 
-  /**
-   * Increment Redis counters for real-time stats (super fast)
-   */
   private async incrementEventCounters(
     productId: number,
     eventType: ProductEventType,
@@ -74,15 +59,13 @@ export class EventsService {
   ): Promise<void> {
     const promises: Promise<any>[] = [];
 
-    // Product-level counters
     switch (eventType) {
       case ProductEventType.VIEW:
         promises.push(
           this.redisService.incr(`stats:product:${productId}:views`),
-          // Track unique viewers using HyperLogLog (memory efficient)
           this.redisService
             .getClient()
-            .pfAdd(`stats:product:${productId}:unique_viewers`, [userId.toString()])
+            .pfadd(`stats:product:${productId}:unique_viewers`, userId.toString())
         );
         break;
 
@@ -95,21 +78,16 @@ export class EventsService {
         break;
     }
 
-    // Daily counters for trending analysis
     const today = new Date().toISOString().split("T")[0];
     promises.push(this.redisService.incr(`stats:product:${productId}:${eventType}:${today}`));
 
     await Promise.all(promises);
   }
 
-  /**
-   * Buffer event for batch processing to PostgreSQL
-   */
   private async bufferEvent(dto: TrackEventDto): Promise<boolean> {
     const bufferKey = `event:buffer:${dto.eventType}`;
 
     try {
-      // Add to Redis List for batch processing
       const event = {
         productId: dto.productId,
         userId: dto.userId,
@@ -119,13 +97,11 @@ export class EventsService {
         metadata: dto.metadata,
       };
 
-      await this.redisService.getClient().rPush(bufferKey, JSON.stringify(event));
+      await this.redisService.getClient().rpush(bufferKey, JSON.stringify(event));
 
-      // Check if buffer is ready for flush
-      const bufferSize = await this.redisService.getClient().lLen(bufferKey);
+      const bufferSize = await this.redisService.getClient().llen(bufferKey);
 
       if (bufferSize >= this.BATCH_SIZE) {
-        // Trigger immediate flush
         await this.eventQueue.add("flush-event-buffer", { eventType: dto.eventType });
       }
 
@@ -136,9 +112,6 @@ export class EventsService {
     }
   }
 
-  /**
-   * Queue async jobs based on event type
-   */
   private async queueEventJobs(dto: TrackEventDto): Promise<void> {
     const jobs: Promise<any>[] = [];
 
@@ -147,9 +120,7 @@ export class EventsService {
         jobs.push(
           this.productQueue.add(
             "increment-views",
-            {
-              productId: dto.productId,
-            },
+            { productId: dto.productId },
             {
               attempts: 3,
               backoff: { type: "exponential", delay: 2000 },
@@ -165,7 +136,6 @@ export class EventsService {
             userId: dto.userId,
             quantity: dto.quantity || 1,
           }),
-          // Update user's cart cache
           this.eventQueue.add("update-user-cart", {
             userId: dto.userId,
             productId: dto.productId,
@@ -180,12 +150,10 @@ export class EventsService {
             userId: dto.userId,
             quantity: dto.quantity || 1,
           }),
-          // Trigger inventory update
           this.eventQueue.add("update-inventory", {
             productId: dto.productId,
             quantity: dto.quantity || 1,
           }),
-          // Calculate trending score
           this.eventQueue.add("update-trending-score", {
             productId: dto.productId,
           })
@@ -196,90 +164,24 @@ export class EventsService {
     await Promise.all(jobs);
   }
 
-  /**
-   * Flush event buffer to PostgreSQL (called by cron or when buffer is full)
-   */
-  //   async flushEventBuffer(eventType: ProductEventType): Promise<number> {
-  //     const bufferKey = `event:buffer:${eventType}`;
-  //     const lockKey = `lock:flush:${eventType}`;
-  //     const lockToken = `${Date.now()}-${Math.random()}`;
-
-  //     try {
-  //       // Acquire lock to prevent concurrent flushes
-  //       const locked = await this.redisService.acquireLock(lockKey, lockToken, 30);
-  //       if (!locked) {
-  //         this.logger.warn(`Already flushing ${eventType} events`);
-  //         return 0;
-  //       }
-
-  //       // Get all buffered events atomically
-  //       const client = this.redisService.getClient();
-  //       const pipeline = client.multi();
-  //       pipeline.lRange(bufferKey, 0, -1);
-  //       pipeline.del(bufferKey);
-  //     //   const [[_, events]] = await pipeline.exec();
-  //     const [[,events]]= await pipeline.exec()
-
-  //       if (!events || events.length === 0) {
-  //         return 0;
-  //       }
-
-  //       // Parse events
-  //       const parsedEvents = events.map(e => JSON.parse(e as string));
-
-  //       // Batch insert to PostgreSQL
-  //       const entities = parsedEvents.map(e =>
-  //         this.eventRepository.create({
-  //           productId: e.productId,
-  //           userId: e.userId,
-  //           eventType: e.eventType,
-  //           quantity: e.quantity,
-  //         }),
-  //       );
-
-  //       await this.eventRepository.save(entities, { chunk: 500 });
-
-  //       this.logger.info(`Flushed ${entities.length} ${eventType} events to database`);
-
-  //       return entities.length;
-  //     } catch (error) {
-  //       this.logger.error(`Failed to flush event buffer: ${error.message}`, error.stack);
-  //       throw error;
-  //     } finally {
-  //       await this.redisService.releaseLock(lockKey, lockToken);
-  //     }
-  //   }
-
-  /**
-   * Cron job to flush all event buffers every minute
-   */
   @Cron(CronExpression.EVERY_MINUTE)
   async flushAllBuffers() {
     const eventTypes = Object.values(ProductEventType);
-
     await Promise.all(
       eventTypes.map((type) => this.eventQueue.add("flush-event-buffer", { eventType: type }))
     );
   }
 
-  /**
-   * Get real-time event stats from Redis (ultra-fast)
-   */
   async getEventStats(productId: number): Promise<EventStats> {
     const cacheKey = `stats:aggregated:${productId}`;
-
-    // Try aggregated cache first
     const cached = await this.redisService.getCache(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
+    if (cached) return JSON.parse(cached);
 
-    // Fetch from Redis counters
     const [views, carts, orders, uniqueViewers] = await Promise.all([
-      this.redisService.get(`stats:product:${productId}:views`).then((v) => parseInt(v || "0")),
-      this.redisService.get(`stats:product:${productId}:carts`).then((v) => parseInt(v || "0")),
-      this.redisService.get(`stats:product:${productId}:orders`).then((v) => parseInt(v || "0")),
-      this.redisService.getClient().pfCount(`stats:product:${productId}:unique_viewers`),
+      this.redisService.get<string>(`stats:product:${productId}:views`).then((v) => parseInt(v || "0")),
+      this.redisService.get<string>(`stats:product:${productId}:carts`).then((v) => parseInt(v || "0")),
+      this.redisService.get<string>(`stats:product:${productId}:orders`).then((v) => parseInt(v || "0")),
+      this.redisService.getClient().pfcount(`stats:product:${productId}:unique_viewers`),
     ]);
 
     const stats: EventStats = {
@@ -289,35 +191,18 @@ export class EventsService {
       uniqueViewers,
     };
 
-    // Cache aggregated stats
     await this.redisService.setCacheWithTTL(cacheKey, JSON.stringify(stats), this.STATS_CACHE_TTL);
-
     return stats;
   }
 
-  /**
-   * Get trending products (based on recent events)
-   */
-  async getTrendingProducts(limit = 20): Promise<
-    {
-      productId: number;
-      score: number;
-      views: number;
-      carts: number;
-      orders: number;
-    }[]
-  > {
+  async getTrendingProducts(limit = 20): Promise<any[]> {
     const cacheKey = `trending:products:${limit}`;
-
     const cached = await this.redisService.getCache(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
+    if (cached) return JSON.parse(cached);
 
     const today = new Date().toISOString().split("T")[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
 
-    // Get all product IDs that have recent activity
     const viewKeys = await this.redisService.scanKeys(`stats:product:*:view:${today}`);
     const productIds = new Set<number>();
 
@@ -326,21 +211,19 @@ export class EventsService {
       if (match) productIds.add(parseInt(match[1]));
     });
 
-    // Calculate trending scores
     const products = await Promise.all(
       Array.from(productIds).map(async (productId) => {
         const [todayViews, todayCarts, todayOrders, yesterdayViews] = await Promise.all([
-          this.redisService.get(`stats:product:${productId}:view:${today}`).then((v) => parseInt(v || "0")),
+          this.redisService.get<string>(`stats:product:${productId}:view:${today}`).then((v) => parseInt(v || "0")),
           this.redisService
-            .get(`stats:product:${productId}:add_to_cart:${today}`)
+            .get<string>(`stats:product:${productId}:add_to_cart:${today}`)
             .then((v) => parseInt(v || "0")),
-          this.redisService.get(`stats:product:${productId}:order:${today}`).then((v) => parseInt(v || "0")),
+          this.redisService.get<string>(`stats:product:${productId}:order:${today}`).then((v) => parseInt(v || "0")),
           this.redisService
-            .get(`stats:product:${productId}:view:${yesterday}`)
+            .get<string>(`stats:product:${productId}:view:${yesterday}`)
             .then((v) => parseInt(v || "0")),
         ]);
 
-        // Trending score: weighted by recency and conversion
         const viewGrowth = yesterdayViews > 0 ? (todayViews - yesterdayViews) / yesterdayViews : todayViews;
         const conversionRate = todayViews > 0 ? (todayCarts + todayOrders * 2) / todayViews : 0;
         const score =
@@ -356,18 +239,11 @@ export class EventsService {
       })
     );
 
-    // Sort by score and take top N
     const trending = products.sort((a, b) => b.score - a.score).slice(0, limit);
-
-    // Cache for 2 minutes
     await this.redisService.setCacheWithTTL(cacheKey, JSON.stringify(trending), 120);
-
     return trending;
   }
 
-  /**
-   * Get event history from PostgreSQL (for analytics)
-   */
   async getEventHistory(
     productId: number,
     eventType?: ProductEventType,
@@ -386,19 +262,8 @@ export class EventsService {
     return query.getMany();
   }
 
-  /**
-   * Get conversion funnel metrics
-   */
-  async getConversionFunnel(productId: number): Promise<{
-    views: number;
-    carts: number;
-    orders: number;
-    viewToCartRate: number;
-    cartToOrderRate: number;
-    viewToOrderRate: number;
-  }> {
+  async getConversionFunnel(productId: number): Promise<any> {
     const stats = await this.getEventStats(productId);
-
     return {
       views: stats.totalViews,
       carts: stats.totalCarts,
@@ -409,15 +274,8 @@ export class EventsService {
     };
   }
 
-  /**
-   * Sync Redis stats to PostgreSQL (run periodically)
-   */
   @Cron(CronExpression.EVERY_30_MINUTES)
   async syncStatsToDatabase() {
-    // this.logger.info("Starting stats sync to database");
-
-    // This will be handled by the stats service
-    // We just need to trigger the job
     await this.productQueue.add(
       "sync-redis-stats-to-db",
       {},
@@ -428,20 +286,13 @@ export class EventsService {
     );
   }
 
-  /**
-   * Batch track events (for high-throughput scenarios)
-   */
   async batchTrackEvents(events: TrackEventDto[]): Promise<{ tracked: number; failed: number }> {
     let tracked = 0;
     let failed = 0;
-
-    // Process in parallel with concurrency limit
     const batchSize = 50;
     for (let i = 0; i < events.length; i += batchSize) {
       const batch = events.slice(i, i + batchSize);
-
       const results = await Promise.allSettled(batch.map((event) => this.trackEvent(event)));
-
       results.forEach((result) => {
         if (result.status === "fulfilled" && result.value.tracked) {
           tracked++;
@@ -450,9 +301,7 @@ export class EventsService {
         }
       });
     }
-
     this.logger.info(`Batch tracking complete: ${tracked} tracked, ${failed} failed`);
-
     return { tracked, failed };
   }
 }

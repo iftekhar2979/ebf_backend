@@ -1,47 +1,99 @@
 import { Test } from "@nestjs/testing";
-import { MailService } from "../../src/mail/mail.service";
-// import { mailServiceMock, mockUser, userRepositoryMock } from "../../test/__mocks__/mocks";
-import { UserRepository } from "./repositories/user.repository";
+import { getRepositoryToken } from "@nestjs/typeorm";
+import { RedisService } from "src/redis/redis.service";
+import { DataSource, Repository } from "typeorm";
+import { MailService } from "../mail/mail.service";
+import { User } from "./entities/user.entity";
+import { ShopsService } from "./shops/shops.service";
 import { UserService } from "./user.service";
+
+const mockUser = {
+  id: "uuid-123",
+  first_name: "John",
+  last_name: "Doe",
+  email: "john@example.com",
+  roles: [],
+  is_active: true,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
 
 describe("UserService", () => {
   let userService: UserService;
-  let userRepository: UserRepository;
-  let mailService: MailService;
+  let userRepo: Repository<User>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
       providers: [
         UserService,
         {
-          provide: UserRepository,
-          useValue: userRepositoryMock,
+          provide: getRepositoryToken(User),
+          useValue: {
+            findOne: jest.fn().mockResolvedValue(mockUser),
+            save: jest.fn().mockResolvedValue(mockUser),
+            update: jest.fn().mockResolvedValue({ affected: 1 }),
+            create: jest.fn().mockImplementation((dto) => dto),
+          },
+        },
+        {
+          provide: "winston",
+          useValue: {
+            log: jest.fn(),
+            info: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
+        {
+          provide: RedisService,
+          useValue: {
+            getClient: jest.fn(),
+            get: jest.fn(),
+            set: jest.fn(),
+            del: jest.fn(),
+          },
         },
         {
           provide: MailService,
-          useValue: mailServiceMock,
+          useValue: {
+            sendConfirmationOnUpdatingUser: jest.fn(),
+          },
+        },
+        {
+          provide: DataSource,
+          useValue: {
+            createQueryRunner: jest.fn().mockReturnValue({
+              connect: jest.fn(),
+              startTransaction: jest.fn(),
+              rollbackTransaction: jest.fn(),
+              commitTransaction: jest.fn(),
+              release: jest.fn(),
+            }),
+          },
+        },
+        {
+          provide: ShopsService,
+          useValue: {},
         },
       ],
     }).compile();
 
     userService = module.get<UserService>(UserService);
-    userRepository = module.get<UserRepository>(UserRepository);
-    mailService = module.get<MailService>(MailService);
-    jest.clearAllMocks();
+    userRepo = module.get<Repository<User>>(getRepositoryToken(User));
   });
 
   describe("updateUserData", () => {
-    it("should be update user data", async () => {
-      userRepositoryMock.findOne?.mockReturnValue(mockUser);
-      userRepositoryMock.save?.mockReturnValue(mockUser);
+    it("should update user data", async () => {
+      const updateDto = { first_name: "Jane" };
+      const updatedUser = { ...mockUser, ...updateDto };
+      
+      jest.spyOn(userRepo, "findOne").mockResolvedValue(mockUser as any);
+      jest.spyOn(userRepo, "save").mockResolvedValue(updatedUser as any);
 
-      console.log(mockUser);
-      const data = await userService.updateUserData({ fullName: "fullname" }, mockUser);
+      const result = await userService.updateUserData(updateDto, mockUser as any);
 
-      console.log(data);
-      console.log(mockUser);
-
-      expect(data).toEqual(mockUser);
+      expect(result.first_name).toBe("Jane");
+      expect(userRepo.save).toHaveBeenCalled();
     });
   });
 });

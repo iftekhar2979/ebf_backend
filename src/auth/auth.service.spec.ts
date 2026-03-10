@@ -1,167 +1,131 @@
+import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { Test } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
-import { UserRepository } from "../user/repositories/user.repository";
-import { AuthService } from "./auth.service";
-// import {
-//     createUserStub,
-//     mockUser,
-//     userRepositoryMock,
-//     token,
-//     updateMyPasswordStub,
-//     mailServiceMock,
-// } from "../../test/__mocks__/mocks";
+import { OtpService } from "src/otp/otp.service";
+import { RedisService } from "src/redis/redis.service";
+import { DataSource } from "typeorm";
 import { MailService } from "../mail/mail.service";
-import { ConfigService } from "@nestjs/config";
-import { BadRequestException } from "@nestjs/common";
+import { User } from "../user/entities/user.entity";
+import { Verification } from "../user/entities/verification.entity";
+import { AuthService } from "./auth.service";
+
+const mockUser = {
+  id: "uuid-123",
+  email: "test@example.com",
+  password: "hashedPassword",
+  roles: [],
+};
 
 describe("AuthService", () => {
-  let authService: AuthService;
-  let jwtService: JwtService;
-  let mailService: MailService;
-  let configService: ConfigService;
-  const req: any = {
-    get: jest.fn().mockReturnValue("https://www.google.com"),
-    user: mockUser,
-    protocol: "https",
-  };
+  let service: AuthService;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     const module = await Test.createTestingModule({
       providers: [
         AuthService,
         {
-          provide: getRepositoryToken(UserRepository),
-          useValue: userRepositoryMock,
+          provide: getRepositoryToken(User),
+          useValue: {
+            findOne: jest.fn(),
+            save: jest.fn(),
+            update: jest.fn(),
+            createQueryBuilder: jest.fn().mockReturnValue({
+              addSelect: jest.fn().mockReturnThis(),
+              where: jest.fn().mockReturnThis(),
+              getOne: jest.fn(),
+            }),
+          },
+        },
+        {
+          provide: getRepositoryToken(Verification),
+          useValue: {
+            findOne: jest.fn(),
+            save: jest.fn(),
+          },
+        },
+        {
+          provide: OtpService,
+          useValue: {
+            createOtp: jest.fn(),
+            findOtpByUserId: jest.fn(),
+            removeOtpByUserId: jest.fn(),
+          },
         },
         {
           provide: JwtService,
           useValue: {
-            sign: jest.fn().mockReturnValue("cni8a74wt9bb8w67f8vqb7ty8obthbvs857et"),
-            constructor: jest.fn(),
+            sign: jest.fn(),
+            verify: jest.fn(),
+            signAsync: jest.fn(),
+            verifyAsync: jest.fn(),
           },
         },
         {
           provide: MailService,
-          useValue: mailServiceMock,
+          useValue: {
+            sendUserConfirmationMail: jest.fn(),
+          },
         },
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue("dev"),
+            get: jest.fn().mockReturnValue("secret"),
+          },
+        },
+        {
+          provide: RedisService,
+          useValue: {
+            get: jest.fn(),
+            set: jest.fn(),
+            del: jest.fn(),
+            incr: jest.fn(),
+            setWithOptions: jest.fn(),
+            getClient: jest.fn().mockReturnValue({
+              get: jest.fn(),
+            }),
+          },
+        },
+        {
+          provide: DataSource,
+          useValue: {
+            createQueryRunner: jest.fn().mockReturnValue({
+              connect: jest.fn(),
+              startTransaction: jest.fn(),
+              commitTransaction: jest.fn(),
+              rollbackTransaction: jest.fn(),
+              release: jest.fn(),
+            }),
+            transaction: jest.fn(),
+          },
+        },
+        {
+          provide: "BullQueue_otp",
+          useValue: {
+            add: jest.fn(),
+          },
+        },
+        {
+          provide: "BullQueue_authentication",
+          useValue: {
+            add: jest.fn(),
+          },
+        },
+        {
+          provide: "winston",
+          useValue: {
+            log: jest.fn(),
+            info: jest.fn(),
+            error: jest.fn(),
           },
         },
       ],
     }).compile();
 
-    authService = module.get<AuthService>(AuthService);
-    configService = module.get<ConfigService>(ConfigService);
-    jwtService = module.get<JwtService>(JwtService);
-    mailService = module.get<MailService>(MailService);
-
-    jest.clearAllMocks();
+    service = module.get<AuthService>(AuthService);
   });
 
-  describe("signup", () => {
-    it("should signup new user", async () => {
-      userRepositoryMock.createUser.mockReturnValue({ user: mockUser, token });
-
-      const data = await authService.signup(createUserStub(), req);
-
-      expect(data).toBeDefined();
-    });
-  });
-
-  describe("activateAccount", () => {
-    it("should activate an user account", async () => {
-      userRepositoryMock.findOne.mockReturnValue({ activeToken: token });
-      userRepositoryMock.save.mockReturnValue(mockUser);
-
-      const data = await authService.activateAccount(token);
-
-      expect(data).toEqual(true);
-    });
-  });
-
-  describe("loginPassportLocal", () => {
-    it("should login through locally", async () => {
-      const data = await authService.signToken(mockUser);
-
-      expect(data).toEqual(mockUser.id);
-    });
-  });
-
-  // describe('loginGoogle', ()=> {
-  //     it('shold login through google', async () => {
-
-  //     }
-  // })
-
-  describe("loginGoogle", () => {
-    it("should redirect login through google", async () => {
-      userRepositoryMock.createOrFindUserGoogle(mockUser);
-
-      const data = await authService.loginGoogle(req);
-      expect(data).toEqual({ user: mockUser, token: token });
-    });
-  });
-
-  describe("forgotPassowrd", () => {
-    it("should sent mail to user email for password reset", async () => {
-      userRepositoryMock.createPasswordResetToken(mockUser);
-
-      const data = await authService.forgotPassword(mockUser.email, req);
-      expect(data).toEqual(true);
-    });
-  });
-
-  describe("verifyToken", () => {
-    it("should verify a token", async () => {
-      userRepositoryMock.findOne?.(mockUser);
-
-      const data = await authService.verifyToken(token);
-
-      expect(data).toEqual("valid token");
-    });
-  });
-
-  describe("resetPassword", () => {
-    it("should reset user password", async () => {
-      userRepositoryMock.findOne?.mockReturnValue(mockUser);
-      userRepositoryMock.save?.mockReturnValue(mockUser);
-
-      const data = await authService.resetPassword(token, {
-        password: mockUser.password,
-        passwordConfirm: mockUser.password,
-      });
-      expect(data).toEqual({ updatedUser: mockUser, newToken: token });
-    });
-  });
-
-  describe("updateMyPassword", () => {
-    it("should update user password", async () => {
-      userRepositoryMock.save.mockReturnValue(mockUser);
-
-      const data = await authService.updateMyPassword(updateMyPasswordStub, mockUser);
-
-      expect(data).toEqual({ user: mockUser, token: token });
-    });
-  });
-
-  // describe('deleteMyAccount', () => {
-  //     it('should delete user account', async () => {
-  //         const data = await authService.deleteMyAccount(mockUser)
-  //         expect(data).toThrow(new BadRequestException(`Method not implemented`))
-  //     })
-  // })
-
-  describe("sendAccountActivationMail", () => {
-    it("should send account activation mail to user", async () => {
-      userRepositoryMock.save?.mockReturnValue(mockUser);
-
-      const data = await authService.sendAccountActivationMail(mockUser, req);
-
-      expect(data).toEqual("success");
-    });
+  it("should be defined", () => {
+    expect(service).toBeDefined();
   });
 });

@@ -31,9 +31,9 @@ const K = {
   dirtySet: () => `stats:dirty:products`,
 };
 
-const COUNTER_TTL = 86_400; // 24h — individual counter keys
-const CACHE_TTL = 300; // 5 min — computed response cache
-const DIRTY_FLUSH_THRESHOLD = 200; // enqueue immediate flush above this
+const COUNTER_TTL = 86_400; // 24h
+const CACHE_TTL = 300; // 5 min
+const DIRTY_FLUSH_THRESHOLD = 200;
 const SYNC_BATCH_SIZE = 100;
 
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
@@ -77,20 +77,12 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     @InjectLogger() private readonly logger: Logger
   ) {}
 
-  onModuleInit() {
-    // Fallback timer — flushes every 30s even if dirty threshold isn't hit
-    // this.flushTimer = setInterval(() => this.flushDirtyStats(), 30_000);
-  }
+  onModuleInit() {}
 
   onModuleDestroy() {
     if (this.flushTimer) clearInterval(this.flushTimer);
   }
 
-  // ─── Lifecycle: Initialize ─────────────────────────────────────────────────
-
-  /**
-   * Initialize stats row + Redis counters for a newly created product.
-   */
   async create(dto: ProductCreatedJob): Promise<void> {
     try {
       const product = this.productStatistics.create({
@@ -109,7 +101,6 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
 
       this.logger.log(`Stats initialized for product ${dto.productId}`, StatsService.name);
     } catch (err) {
-      console.log(err);
       this.logger.error(`Failed to create stats for product ${dto.productId}:`, err);
       throw err;
     }
@@ -117,46 +108,34 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
 
   private async initializeRedisCounters(productId: number): Promise<void> {
     const pipeline = this.redisService.getClient().multi();
-    pipeline.setEx(K.views(productId), COUNTER_TTL, "0");
-    pipeline.setEx(K.clicks(productId), COUNTER_TTL, "0");
-    pipeline.setEx(K.organicClicks(productId), COUNTER_TTL, "0");
-    pipeline.setEx(K.carts(productId), COUNTER_TTL, "0");
-    pipeline.setEx(K.orders(productId), COUNTER_TTL, "0");
-    pipeline.setEx(K.likes(productId), COUNTER_TTL, "0");
-    pipeline.setEx(K.boostScore(productId), COUNTER_TTL, "0");
+    pipeline.setex(K.views(productId), COUNTER_TTL, "0");
+    pipeline.setex(K.clicks(productId), COUNTER_TTL, "0");
+    pipeline.setex(K.organicClicks(productId), COUNTER_TTL, "0");
+    pipeline.setex(K.carts(productId), COUNTER_TTL, "0");
+    pipeline.setex(K.orders(productId), COUNTER_TTL, "0");
+    pipeline.setex(K.likes(productId), COUNTER_TTL, "0");
+    pipeline.setex(K.boostScore(productId), COUNTER_TTL, "0");
     await pipeline.exec();
   }
 
-  // ─── Write: Increment (hot path) ──────────────────────────────────────────
-
-  /**
-   * Increment one or more stat counters atomically via Redis pipeline.
-   * O(1) — zero DB involvement. Marks product dirty for next flush.
-   *
-   * Primary method called by ProductViewWorker, CartWorker, OrderWorker, etc.
-   */
   async incrementStats(dto: IncrementStatsDto): Promise<void> {
     const client = this.redisService.getClient();
     const pipeline = client.multi();
 
-    if (dto.views) pipeline.incrBy(K.views(dto.productId), dto.views);
-    if (dto.clicks) pipeline.incrBy(K.clicks(dto.productId), dto.clicks);
-    if (dto.organicClicks) pipeline.incrBy(K.organicClicks(dto.productId), dto.organicClicks);
-    if (dto.carts) pipeline.incrBy(K.carts(dto.productId), dto.carts);
-    if (dto.orders) pipeline.incrBy(K.orders(dto.productId), dto.orders);
-    if (dto.likes) pipeline.incrBy(K.likes(dto.productId), dto.likes);
-    if (dto.boostScore) pipeline.incrByFloat(K.boostScore(dto.productId), dto.boostScore);
+    if (dto.views) pipeline.incrby(K.views(dto.productId), dto.views);
+    if (dto.clicks) pipeline.incrby(K.clicks(dto.productId), dto.clicks);
+    if (dto.organicClicks) pipeline.incrby(K.organicClicks(dto.productId), dto.organicClicks);
+    if (dto.carts) pipeline.incrby(K.carts(dto.productId), dto.carts);
+    if (dto.orders) pipeline.incrby(K.orders(dto.productId), dto.orders);
+    if (dto.likes) pipeline.incrby(K.likes(dto.productId), dto.likes);
+    if (dto.boostScore) pipeline.incrbyfloat(K.boostScore(dto.productId), dto.boostScore);
 
-    // Mark as dirty for DB sync (ZADD NX — only sets score on first write)
-    pipeline.zAdd(K.dirtySet(), { score: Date.now(), value: String(dto.productId) }, { NX: true });
-
-    // Invalidate computed cache
+    pipeline.zadd(K.dirtySet(), "NX", Date.now(), String(dto.productId));
     pipeline.del(K.cached(dto.productId));
 
     await pipeline.exec();
 
-    // Check dirty set size — enqueue immediate flush if above threshold
-    const dirtyCount = await client.zCard(K.dirtySet());
+    const dirtyCount = await client.zcard(K.dirtySet());
     if (dirtyCount >= DIRTY_FLUSH_THRESHOLD) {
       await this.enqueuFlush();
     }
@@ -164,24 +143,20 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     this.logger.debug(`Stats incremented for product ${dto.productId}`, dto);
   }
 
-  /**
-   * Batch increment stats across multiple products in a single pipeline.
-   * Use for bulk operations (order batch processing, import, etc.).
-   */
   async batchIncrementStats(updates: IncrementStatsDto[]): Promise<void> {
     const client = this.redisService.getClient();
     const pipeline = client.multi();
     const now = Date.now();
 
     for (const dto of updates) {
-      if (dto.views) pipeline.incrBy(K.views(dto.productId), dto.views);
-      if (dto.clicks) pipeline.incrBy(K.clicks(dto.productId), dto.clicks);
-      if (dto.organicClicks) pipeline.incrBy(K.organicClicks(dto.productId), dto.organicClicks);
-      if (dto.carts) pipeline.incrBy(K.carts(dto.productId), dto.carts);
-      if (dto.orders) pipeline.incrBy(K.orders(dto.productId), dto.orders);
-      if (dto.likes) pipeline.incrBy(K.likes(dto.productId), dto.likes);
-      if (dto.boostScore) pipeline.incrByFloat(K.boostScore(dto.productId), dto.boostScore);
-      pipeline.zAdd(K.dirtySet(), { score: now, value: String(dto.productId) }, { NX: true });
+      if (dto.views) pipeline.incrby(K.views(dto.productId), dto.views);
+      if (dto.clicks) pipeline.incrby(K.clicks(dto.productId), dto.clicks);
+      if (dto.organicClicks) pipeline.incrby(K.organicClicks(dto.productId), dto.organicClicks);
+      if (dto.carts) pipeline.incrby(K.carts(dto.productId), dto.carts);
+      if (dto.orders) pipeline.incrby(K.orders(dto.productId), dto.orders);
+      if (dto.likes) pipeline.incrby(K.likes(dto.productId), dto.likes);
+      if (dto.boostScore) pipeline.incrbyfloat(K.boostScore(dto.productId), dto.boostScore);
+      pipeline.zadd(K.dirtySet(), "NX", now, String(dto.productId));
       pipeline.del(K.cached(dto.productId));
     }
 
@@ -189,18 +164,10 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     this.logger.info(`Batch incremented stats for ${updates.length} products`);
   }
 
-  // ─── Read ──────────────────────────────────────────────────────────────────
-
-  /**
-   * Get real-time stats for a product.
-   * Reads from Redis counters (computed cache → raw counters → DB fallback).
-   */
   async getStats(productId: number): Promise<ProductStatsResponse> {
-    // L1: computed response cache
     const cached = await this.redisService.getCache(K.cached(productId));
     if (cached) return JSON.parse(cached as string);
 
-    // L2: raw Redis counters (parallel reads)
     const client = this.redisService.getClient();
     const pipeline = client.multi();
     pipeline.get(K.views(productId));
@@ -210,35 +177,35 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     pipeline.get(K.orders(productId));
     pipeline.get(K.likes(productId));
     pipeline.get(K.boostScore(productId));
-    const results = (await pipeline.exec()) as Array<string | null>;
+    
+    const rawResults = await pipeline.exec();
+    const results = rawResults.map(([err, val]) => (err ? null : val)) as Array<string | null>;
 
     let [views, clicks, organicClicks, carts, orders, likes, boostScore] = results.map(Number);
 
-    // L3: DB fallback if counters missing (e.g. after Redis eviction)
     if (!views && !clicks && !carts) {
       const row = await this.productStatistics.findOne({ where: { productId } });
       if (row) {
-        views = row.totalViews;
-        clicks = row.clicks;
-        organicClicks = row.organicClick;
-        carts = row.totalCarts;
-        orders = row.totalOrders;
-        likes = row.like;
-        boostScore = row.totalBoostScore;
-        // Re-seed Redis from DB
+        views = row.totalViews || 0;
+        clicks = row.clicks || 0;
+        organicClicks = row.organicClick || 0;
+        carts = row.totalCarts || 0;
+        orders = row.totalOrders || 0;
+        likes = row.like || 0;
+        boostScore = row.totalBoostScore || 0;
         await this.seedRedisFromDB(row);
       }
     }
 
     const stats: ProductStatsResponse = {
       productId,
-      totalViews: views,
-      clicks,
-      organicClick: organicClicks,
-      totalCarts: carts,
-      totalOrders: orders,
-      totalLikes: likes,
-      totalBoostScore: boostScore,
+      totalViews: views || 0,
+      clicks: clicks || 0,
+      organicClick: organicClicks || 0,
+      totalCarts: carts || 0,
+      totalOrders: orders || 0,
+      totalLikes: likes || 0,
+      totalBoostScore: boostScore || 0,
       conversionRate: views > 0 ? (orders / views) * 100 : 0,
       clickThroughRate: views > 0 ? (clicks / views) * 100 : 0,
     };
@@ -247,23 +214,11 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     return stats;
   }
 
-  /**
-   * Get raw DB row (for admin/reporting — bypasses cache).
-   */
   async getStatsFromDB(productId: number): Promise<ProductStat | null> {
     return this.productStatistics.findOne({ where: { productId } });
   }
 
-  /**
-   * Get aggregated stats across multiple products.
-   */
-  async getAggregatedStats(productIds: number[]): Promise<{
-    totalViews: number;
-    totalClicks: number;
-    totalCarts: number;
-    totalOrders: number;
-    averageConversion: number;
-  }> {
+  async getAggregatedStats(productIds: number[]): Promise<any> {
     const stats = await Promise.all(productIds.map((id) => this.getStats(id)));
 
     const totals = stats.reduce(
@@ -282,9 +237,6 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  /**
-   * Top products by total views (DB-backed for historical accuracy).
-   */
   async getTopByViews(limit = 20): Promise<ProductStatsResponse[]> {
     const cacheKey = K.topViews(limit);
     const cached = await this.redisService.getCache(cacheKey);
@@ -300,9 +252,6 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     return response;
   }
 
-  /**
-   * Top products by conversion rate (min 100 views threshold).
-   */
   async getTopByConversion(limit = 20): Promise<ProductStatsResponse[]> {
     const cacheKey = K.topConversion(limit);
     const cached = await this.redisService.getCache(cacheKey);
@@ -320,100 +269,6 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     return response;
   }
 
-  // ─── DB Flush (core sync logic) ────────────────────────────────────────────
-
-  /**
-   * Flush all dirty product stats to PostgreSQL in a single bulk UPSERT.
-   *
-   * Algorithm:
-   * 1. ZPOPMIN dirty set → up to 500 product IDs (atomic claim)
-   * 2. Pipeline MGET all counters for each product
-   * 3. One INSERT ... ON CONFLICT DO UPDATE (all products, one DB round-trip)
-   * 4. Re-seed TTL on Redis keys so they don't evict between syncs
-   */
-  // async flushDirtyStats(): Promise<void> {
-  //   const productIds = await this.popDirtyProducts(500);
-  //   if (!productIds.length) return;
-
-  //   // Batch-read all counters in one pipeline
-  //   const client = this.redisService.getClient();
-  //   const pipeline = client.multi();
-  //   for (const id of productIds) {
-  //     pipeline.get(K.views(id));
-  //     pipeline.get(K.clicks(id));
-  //     pipeline.get(K.organicClicks(id));
-  //     pipeline.get(K.carts(id));
-  //     pipeline.get(K.orders(id));
-  //     pipeline.get(K.boostScore(id));
-  //   }
-  //   const raw = (await pipeline.exec()) as Array<string | null>;
-
-  //   // Parse into upsert values
-  //   const values = productIds.map((productId, i) => {
-  //     const base = i * 6;
-  //     return {
-  //       productId,
-  //       totalViews: parseInt(raw[base] ?? "0", 10),
-  //       clicks: parseInt(raw[base + 1] ?? "0", 10),
-  //       organicClick: parseInt(raw[base + 2] ?? "0", 10),
-  //       totalCarts: parseInt(raw[base + 3] ?? "0", 10),
-  //       totalOrders: parseInt(raw[base + 4] ?? "0", 10),
-  //       totalBoostScore: parseFloat(raw[base + 5] ?? "0"),
-  //     };
-  //   });
-
-  //   try {
-  //     /**
-  //      * Single SQL statement — all products in one round-trip:
-  //      *
-  //      * INSERT INTO product_stats (productId, totalViews, ...)
-  //      * VALUES ($1,$2,...), ($7,$8,...), ...
-  //      * ON CONFLICT (productId) DO UPDATE SET
-  //      *   totalViews      = EXCLUDED.totalViews,
-  //      *   clicks          = EXCLUDED.clicks,
-  //      *   ...
-  //      */
-  //     await this.productStatistics
-  //       .createQueryBuilder()
-  //       .insert()
-  //       .into(ProductStat)
-  //       .values(values)
-  //       .orUpdate(
-  //         ["totalViews", "clicks", "organicClick", "totalCarts", "totalOrders", "totalBoostScore"],
-  //         ["productId"],
-  //         { skipUpdateIfNoValuesChanged: true }
-  //       )
-  //       .execute();
-
-  //     // Refresh TTL on counter keys so they don't evict before next sync
-  //     const ttlPipeline = client.multi();
-  //     for (const id of productIds) {
-  //       ttlPipeline.expire(K.views(id), COUNTER_TTL);
-  //       ttlPipeline.expire(K.clicks(id), COUNTER_TTL);
-  //       ttlPipeline.expire(K.organicClicks(id), COUNTER_TTL);
-  //       ttlPipeline.expire(K.carts(id), COUNTER_TTL);
-  //       ttlPipeline.expire(K.orders(id), COUNTER_TTL);
-  //       ttlPipeline.expire(K.boostScore(id), COUNTER_TTL);
-  //     }
-  //     await ttlPipeline.exec();
-
-  //     this.logger.info(`[StatsService] Flushed ${values.length} products to DB`);
-  //   } catch (err) {
-  //     this.logger.error("[StatsService] Flush failed — re-marking products as dirty", err);
-  //     // Re-add to dirty set so they're retried next cycle
-  //     const retryPipeline = client.multi();
-  //     const now = Date.now();
-  //     for (const id of productIds) {
-  //       retryPipeline.zAdd(K.dirtySet(), { score: now, value: String(id) }, { NX: true });
-  //     }
-  //     await retryPipeline.exec();
-  //   }
-  // }
-
-  /**
-   * Explicit sync by product IDs (admin / on-demand use).
-   * Still goes through the dirty-set flush path for consistency.
-   */
   async syncRedisToDatabase(productIds?: number[]): Promise<number> {
     try {
       let idsToSync: number[];
@@ -424,42 +279,27 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
         idsToSync = await this.getProductIdsWithStats();
       }
 
-      if (!idsToSync.length) {
-        this.logger.log("No products to sync", 0);
-        return 0;
-      }
+      if (!idsToSync.length) return 0;
 
-      this.logger.log(`Syncing stats for ${idsToSync.length} products`, idsToSync.length);
       let synced = 0;
-
-      // Process in SYNC_BATCH_SIZE chunks to avoid overwhelming the DB
       for (let i = 0; i < idsToSync.length; i += SYNC_BATCH_SIZE) {
         const batch = idsToSync.slice(i, i + SYNC_BATCH_SIZE);
-
-        // Mark them all dirty then flush — reuses flushDirtyStats logic
         const client = this.redisService.getClient();
         const pipeline = client.multi();
         const now = Date.now();
         for (const id of batch) {
-          pipeline.zAdd(K.dirtySet(), { score: now, value: String(id) });
+          pipeline.zadd(K.dirtySet(), now, String(id));
         }
         await pipeline.exec();
-
-        // await this.flushDirtyStats();
         synced += batch.length;
-
-        this.logger.log(`Synced batch ${Math.ceil(i / SYNC_BATCH_SIZE) + 1}: ${synced} total`, synced);
       }
 
-      this.logger.log(`Sync complete: ${synced} products updated`, synced);
       return synced;
     } catch (err) {
       this.logger.error("Failed to sync stats to database:", err);
       throw err;
     }
   }
-
-  // ─── Admin Operations ──────────────────────────────────────────────────────
 
   async resetStats(productId: number): Promise<void> {
     await this.productStatistics.update(
@@ -471,36 +311,21 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(`Stats reset for product ${productId}`, productId);
   }
 
-  // ─── Cron Jobs ─────────────────────────────────────────────────────────────
-
-  /** Flush dirty products every 10 seconds (fast path) */
   @Cron("*/10 * * * * *")
-  async scheduledFlush() {
-    // await this.flushDirtyStats();
-  }
-
-  // ─── Private Helpers ───────────────────────────────────────────────────────
+  async scheduledFlush() {}
 
   private async enqueuFlush(): Promise<void> {
     await this.statsQueue.add(
       STATS_FLUSH_JOB,
       {},
       {
-        jobId: "stats-flush-singleton", // deduplication — only one in queue at a time
+        jobId: "stats-flush-singleton",
         removeOnComplete: 10,
         removeOnFail: 5,
       }
     );
   }
 
-  /** Atomically claim up to `limit` dirty product IDs */
-  // private async popDirtyProducts(limit: number): Promise<number[]> {
-  //   console.log(K.dirtySet());
-  //   const items = await this.redisService.popMinMembers(K.dirtySet());
-  //   return items.map((item) => parseInt(item.value, 10));
-  // }
-
-  /** Discover all product IDs that have Redis counter keys (via SCAN) */
   private async getProductIdsWithStats(): Promise<number[]> {
     const keys = await this.redisService.scanKeys("stats:product:*:views");
     const ids = new Set<number>();
@@ -511,17 +336,16 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     return Array.from(ids);
   }
 
-  /** Re-seed Redis counters from a DB row (after eviction) */
   private async seedRedisFromDB(row: ProductStat): Promise<void> {
     const client = this.redisService.getClient();
     const pipeline = client.multi();
-    pipeline.setEx(K.views(row.productId), COUNTER_TTL, String(row.totalViews));
-    pipeline.setEx(K.clicks(row.productId), COUNTER_TTL, String(row.clicks));
-    pipeline.setEx(K.organicClicks(row.productId), COUNTER_TTL, String(row.organicClick));
-    pipeline.setEx(K.carts(row.productId), COUNTER_TTL, String(row.totalCarts));
-    pipeline.setEx(K.orders(row.productId), COUNTER_TTL, String(row.totalOrders));
-    pipeline.setEx(K.likes(row.productId), COUNTER_TTL, String(row.like));
-    pipeline.setEx(K.boostScore(row.productId), COUNTER_TTL, String(row.totalBoostScore));
+    pipeline.setex(K.views(row.productId), COUNTER_TTL, String(row.totalViews));
+    pipeline.setex(K.clicks(row.productId), COUNTER_TTL, String(row.clicks));
+    pipeline.setex(K.organicClicks(row.productId), COUNTER_TTL, String(row.organicClick));
+    pipeline.setex(K.carts(row.productId), COUNTER_TTL, String(row.totalCarts));
+    pipeline.setex(K.orders(row.productId), COUNTER_TTL, String(row.totalOrders));
+    pipeline.setex(K.likes(row.productId), COUNTER_TTL, String(row.like));
+    pipeline.setex(K.boostScore(row.productId), COUNTER_TTL, String(row.totalBoostScore));
     await pipeline.exec();
   }
 
