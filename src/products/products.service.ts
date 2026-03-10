@@ -1,12 +1,12 @@
 import { InjectQueue } from "@nestjs/bull";
 import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-  NotFoundException,
-  ServiceUnavailableException,
+    BadRequestException,
+    ConflictException,
+    Injectable,
+    InternalServerErrorException,
+    Logger,
+    NotFoundException,
+    ServiceUnavailableException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Queue } from "bull";
@@ -19,7 +19,9 @@ import { CreateProductDto } from "./dto/CreateProduct.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
 import { Product } from "./entities/product.entity";
 import { ProductImage } from "./images/entities/images.entity";
+import { LikesService } from "./likes/likes.service";
 import { RankingsService } from "./rankings/rankings.service";
+import { StatsService } from "./stats/stats.service";
 import { SubCategory } from "./sub_categories/entities/sub_categories.entity";
 import { ProductFilters } from "./types/productFilters";
 import { ProductVariant } from "./varients/entities/varients.entity";
@@ -32,7 +34,9 @@ export class ProductsService {
     @InjectLogger() private readonly logger: Logger,
     @InjectQueue(PRODUCT_PROCESSORS.PROCESSOR) private readonly productQueue: Queue,
     @InjectRepository(Product) private readonly productRepository: Repository<Product>,
-    private readonly rankingService: RankingsService
+    private readonly rankingService: RankingsService,
+    private readonly statsService: StatsService,
+    private readonly likesService: LikesService
   ) {}
 
   // async create(createProductDto: CreateProductDto, user: User) {
@@ -368,8 +372,22 @@ export class ProductsService {
         reviews: 4,
       };
     });
+    // 6. Get stats and likes status in parallel
+    const productIds = flattenedProducts.map((p) => p.id);
+    const [likedIds, aggregatedStats] = await Promise.all([
+      filters.userId ? this.likesService.getLikedProductIds(filters.userId) : Promise.resolve([]),
+      // We could fetch stats for each if needed, but for now we'll just return what's in the DB if joined
+      // Or just skip stats in list view for performance unless requested
+      Promise.resolve([]),
+    ]);
+
+    const finalData = flattenedProducts.map((p) => ({
+      ...p,
+      isLiked: likedIds.includes(p.id),
+    }));
+
     const result = {
-      data: flattenedProducts,
+      data: finalData,
       meta: {
         total,
         page,
@@ -384,7 +402,7 @@ export class ProductsService {
     return result;
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, userId?: string) {
     // 1️⃣ Try cache first
     // const cached = await this.productCacheService.getProduct(id);
     // if (cached) {
@@ -422,7 +440,16 @@ export class ProductsService {
         throw new NotFoundException(`Product with ID ${id} not found`);
       }
 
-      // 4️⃣ Cache with TTL (e.g., 5 minutes)
+      // 5️⃣ Fetch stats and like status
+      const [stats, isLiked] = await Promise.all([
+        this.statsService.getStats(id),
+        userId ? this.likesService.isLiked(id, userId) : Promise.resolve(false),
+      ]);
+
+      (product as any).stats = stats;
+      (product as any).isLiked = isLiked;
+
+      // 6️⃣ Cache with TTL (e.g., 5 minutes)
       await this.productCacheService.setProduct(id, product);
 
       return product;

@@ -1,18 +1,18 @@
 import {
-  Body,
-  ClassSerializerInterceptor,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-  Query,
-  UseGuards,
-  UseInterceptors,
+    Body,
+    ClassSerializerInterceptor,
+    Controller,
+    Delete,
+    Get,
+    HttpCode,
+    HttpStatus,
+    Param,
+    ParseIntPipe,
+    Patch,
+    Post,
+    Query,
+    UseGuards,
+    UseInterceptors,
 } from "@nestjs/common";
 import { GetUser } from "src/auth/decorators/get-user.decorator";
 import { RolesGuard } from "src/auth/guards/roles-auth.guard";
@@ -49,7 +49,8 @@ export class ProductsController {
     @Query("hasDiscount") hasDiscount?: string,
     @Query("search") search?: string,
     @Query("page", new ParseIntPipe({ optional: true })) page?: number,
-    @Query("limit", new ParseIntPipe({ optional: true })) limit?: number
+    @Query("limit", new ParseIntPipe({ optional: true })) limit?: number,
+    @GetUser("id") currentUserId?: string
   ) {
     const filters: ProductFilters = {
       userId,
@@ -63,7 +64,10 @@ export class ProductsController {
       limit,
     };
 
-    return this.productsService.findAll(filters);
+    // Use currentUserId for 'isLiked' tracking, while maintaining filters.userId for product owner filtering
+    filters.userId = filters.userId || undefined; // ensure it's not empty string
+    
+    return this.productsService.findAll({ ...filters, userId: userId || currentUserId });
   }
 
   @Get("trending")
@@ -73,8 +77,8 @@ export class ProductsController {
   }
 
   @Get(":id")
-  async findOne(@Param("id", ParseIntPipe) id: number) {
-    const product = await this.productsService.findOne(id);
+  async findOne(@Param("id", ParseIntPipe) id: number, @GetUser("id") userId?: string) {
+    const product = await this.productsService.findOne(id, userId);
 
     // Track view asynchronously
     this.productsService.incrementView(id);

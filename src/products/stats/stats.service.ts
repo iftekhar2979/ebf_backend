@@ -22,6 +22,7 @@ const K = {
   organicClicks: (id: number) => `stats:product:${id}:organic_clicks`,
   carts: (id: number) => `stats:product:${id}:carts`,
   orders: (id: number) => `stats:product:${id}:orders`,
+  likes: (id: number) => `stats:product:${id}:likes`,
   boostScore: (id: number) => `stats:product:${id}:boost_score`,
   cached: (id: number) => `stats:cached:${id}`,
   topViews: (limit: number) => `stats:top:views:${limit}`,
@@ -44,6 +45,7 @@ export interface IncrementStatsDto {
   organicClicks?: number;
   carts?: number;
   orders?: number;
+  likes?: number;
   boostScore?: number;
 }
 
@@ -55,6 +57,7 @@ export interface ProductStatsResponse {
   totalBoostScore: number;
   totalCarts: number;
   totalOrders: number;
+  totalLikes: number;
   conversionRate: number;
   clickThroughRate: number;
 }
@@ -98,6 +101,7 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
         totalBoostScore: 0,
         totalCarts: 0,
         totalOrders: 0,
+        like: 0,
       });
 
       await this.productStatistics.save(product);
@@ -118,6 +122,7 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     pipeline.setEx(K.organicClicks(productId), COUNTER_TTL, "0");
     pipeline.setEx(K.carts(productId), COUNTER_TTL, "0");
     pipeline.setEx(K.orders(productId), COUNTER_TTL, "0");
+    pipeline.setEx(K.likes(productId), COUNTER_TTL, "0");
     pipeline.setEx(K.boostScore(productId), COUNTER_TTL, "0");
     await pipeline.exec();
   }
@@ -139,6 +144,7 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     if (dto.organicClicks) pipeline.incrBy(K.organicClicks(dto.productId), dto.organicClicks);
     if (dto.carts) pipeline.incrBy(K.carts(dto.productId), dto.carts);
     if (dto.orders) pipeline.incrBy(K.orders(dto.productId), dto.orders);
+    if (dto.likes) pipeline.incrBy(K.likes(dto.productId), dto.likes);
     if (dto.boostScore) pipeline.incrByFloat(K.boostScore(dto.productId), dto.boostScore);
 
     // Mark as dirty for DB sync (ZADD NX — only sets score on first write)
@@ -173,6 +179,7 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
       if (dto.organicClicks) pipeline.incrBy(K.organicClicks(dto.productId), dto.organicClicks);
       if (dto.carts) pipeline.incrBy(K.carts(dto.productId), dto.carts);
       if (dto.orders) pipeline.incrBy(K.orders(dto.productId), dto.orders);
+      if (dto.likes) pipeline.incrBy(K.likes(dto.productId), dto.likes);
       if (dto.boostScore) pipeline.incrByFloat(K.boostScore(dto.productId), dto.boostScore);
       pipeline.zAdd(K.dirtySet(), { score: now, value: String(dto.productId) }, { NX: true });
       pipeline.del(K.cached(dto.productId));
@@ -201,10 +208,11 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     pipeline.get(K.organicClicks(productId));
     pipeline.get(K.carts(productId));
     pipeline.get(K.orders(productId));
+    pipeline.get(K.likes(productId));
     pipeline.get(K.boostScore(productId));
     const results = (await pipeline.exec()) as Array<string | null>;
 
-    let [views, clicks, organicClicks, carts, orders, boostScore] = results.map(Number);
+    let [views, clicks, organicClicks, carts, orders, likes, boostScore] = results.map(Number);
 
     // L3: DB fallback if counters missing (e.g. after Redis eviction)
     if (!views && !clicks && !carts) {
@@ -215,6 +223,7 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
         organicClicks = row.organicClick;
         carts = row.totalCarts;
         orders = row.totalOrders;
+        likes = row.like;
         boostScore = row.totalBoostScore;
         // Re-seed Redis from DB
         await this.seedRedisFromDB(row);
@@ -228,6 +237,7 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
       organicClick: organicClicks,
       totalCarts: carts,
       totalOrders: orders,
+      totalLikes: likes,
       totalBoostScore: boostScore,
       conversionRate: views > 0 ? (orders / views) * 100 : 0,
       clickThroughRate: views > 0 ? (clicks / views) * 100 : 0,
@@ -454,7 +464,7 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
   async resetStats(productId: number): Promise<void> {
     await this.productStatistics.update(
       { productId },
-      { totalViews: 0, clicks: 0, organicClick: 0, totalCarts: 0, totalOrders: 0, totalBoostScore: 0 }
+      { totalViews: 0, clicks: 0, organicClick: 0, totalCarts: 0, totalOrders: 0, totalBoostScore: 0, like: 0 }
     );
     await this.initializeRedisCounters(productId);
     await this.redisService.del(K.cached(productId));
@@ -510,6 +520,7 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
     pipeline.setEx(K.organicClicks(row.productId), COUNTER_TTL, String(row.organicClick));
     pipeline.setEx(K.carts(row.productId), COUNTER_TTL, String(row.totalCarts));
     pipeline.setEx(K.orders(row.productId), COUNTER_TTL, String(row.totalOrders));
+    pipeline.setEx(K.likes(row.productId), COUNTER_TTL, String(row.like));
     pipeline.setEx(K.boostScore(row.productId), COUNTER_TTL, String(row.totalBoostScore));
     await pipeline.exec();
   }
@@ -522,6 +533,7 @@ export class StatsService implements OnModuleInit, OnModuleDestroy {
       organicClick: row.organicClick,
       totalCarts: row.totalCarts,
       totalOrders: row.totalOrders,
+      totalLikes: row.like,
       totalBoostScore: row.totalBoostScore,
       conversionRate: row.totalViews > 0 ? (row.totalOrders / row.totalViews) * 100 : 0,
       clickThroughRate: row.totalViews > 0 ? (row.clicks / row.totalViews) * 100 : 0,

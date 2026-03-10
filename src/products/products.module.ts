@@ -9,6 +9,7 @@ import { Product } from "./entities/product.entity";
 import { EventsModule } from "./events/events.module";
 import { GlobalStatsModule } from "./global_stats/global_stats.module";
 import { ImagesModule } from "./images/images.module";
+import { LikesModule } from "./likes/likes.module";
 import { ProductsController } from "./products.controller";
 import { ProductsService } from "./products.service";
 import { RankingsModule } from "./rankings/rankings.module";
@@ -38,6 +39,7 @@ import { ViewsModule } from "./views/views.module";
     CachesModule,
     RankingsModule,
     ProductReviewsModule,
+    LikesModule,
   ],
 })
 export class ProductsModule {}
