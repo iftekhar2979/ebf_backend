@@ -17,7 +17,10 @@ export class ShopRepository {
     private readonly shopReviewRepo: Repository<ShopReview>,
 
     @InjectRepository(Product)
-    private readonly productRepo: Repository<Product>
+    private readonly productRepo: Repository<Product> ,
+
+    
+
   ) {}
 
   // ─── Shop ──────────────────────────────────────────────────────────────────

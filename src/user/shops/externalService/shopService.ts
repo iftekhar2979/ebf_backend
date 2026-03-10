@@ -1,22 +1,23 @@
 import {
-    BadRequestException,
-    ConflictException,
-    Injectable,
-    Logger,
-    NotFoundException,
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
 } from "@nestjs/common";
 import { RedisService } from "src/redis/redis.service";
 import { User } from "src/user/entities/user.entity";
 import { SHOP_CACHE_KEYS, SHOP_CACHE_TTL } from "../constants/shop.cache.contants";
 import {
-    CreateShopReviewDto,
-    PaginatedResponse,
-    PaginationQueryDto,
-    SearchShopsQueryDto,
-    ShopDetailResponse,
-    ShopListItem,
-    ShopReviewResponse,
+  CreateShopReviewDto,
+  PaginatedResponse,
+  PaginationQueryDto,
+  SearchShopsQueryDto,
+  ShopDetailResponse,
+  ShopListItem,
+  ShopReviewResponse,
 } from "../dto/shop.dto";
+import { FavouritesService } from "../favourites/favourites.service";
 import { ShopMapper } from "../mapper/shop.mapper";
 import { ShopRepository } from "../shop.repository";
 
@@ -26,21 +27,33 @@ export class ShopService {
 
   constructor(
     private readonly _shopRepository: ShopRepository,
-    private readonly _redisService: RedisService
+    private readonly _redisService: RedisService ,
+    private readonly _favouriteService: FavouritesService
   ) {}
 
   // ─── Get Single Shop (full detail) ────────────────────────────────────────
 
-  async getShopById(shopId: number): Promise<ShopDetailResponse> {
+  async getShopById(shopId: number, userId?: string): Promise<ShopDetailResponse> {
     const cacheKey = SHOP_CACHE_KEYS.shopDetail(shopId);
 
     // 1. Try cache
     const cached = await this._tryGetCache<ShopDetailResponse>(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      if (userId) {
+        const result = await this._favouriteService.isFavourite(userId, shopId);
+        cached.isFavourite = result.isFavourite;
+      }
+      return cached;
+    }
 
     // 2. Fetch shop base info
     const shop = await this._shopRepository.findShopById(shopId);
     if (!shop) throw new NotFoundException(`Shop with id ${shopId} not found`);
+
+    if (userId) {
+      const result = await this._favouriteService.isFavourite(userId, shop.id);
+      shop.isFavourite = result.isFavourite;
+    }
 
     // 3. Fetch products + reviews in parallel
     const [[rawProducts], [rawReviews, count], averageRating] = await Promise.all([
@@ -63,7 +76,7 @@ export class ShopService {
 
   // ─── Get All Shops (list with search/filter) ──────────────────────────────
 
-  async getShops(query: SearchShopsQueryDto): Promise<PaginatedResponse<ShopListItem>> {
+  async getShops(query: SearchShopsQueryDto, userId?: string): Promise<PaginatedResponse<ShopListItem>> {
     const { page, limit, name, city, area } = query;
 
     const hasFilter = !!(name || city || area);
@@ -74,11 +87,28 @@ export class ShopService {
     const ttl = hasFilter ? SHOP_CACHE_TTL.SHOP_SEARCH : SHOP_CACHE_TTL.SHOP_LIST;
 
     // 1. Try cache
-    const cached = await this._tryGetCache<PaginatedResponse<ShopListItem>>(cacheKey);
-    if (cached) return cached;
+    let cached = await this._tryGetCache<PaginatedResponse<ShopListItem>>(cacheKey);
+
+    if (cached) {
+      if (userId) {
+        const favIds = await this._favouriteService.getFavouriteShopIds(userId);
+        cached.data = cached.data.map((shop) => ({
+          ...shop,
+          isFavourite: favIds.includes(shop.id),
+        }));
+      }
+      return cached;
+    }
 
     // 2. Query DB
     const [shops, total] = await this._shopRepository.findShopsWithAddress(query);
+
+    if (userId) {
+      const favIds = await this._favouriteService.getFavouriteShopIds(userId);
+      shops.forEach((shop) => {
+        shop.isFavourite = favIds.includes(shop.id);
+      });
+    }
 
     // 3. Map
     const data = shops.map(ShopMapper.toShopListItem);

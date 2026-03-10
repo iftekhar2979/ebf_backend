@@ -1,12 +1,12 @@
 import { Product } from "src/products/entities/product.entity";
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
-  OneToOne,
+  Entity,
   JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from "typeorm";
 
 @Entity("product_stats")
@@ -22,6 +22,8 @@ export class ProductStat {
 
   @Column({ type: "int", default: 0 })
   clicks: number;
+  @Column({ type: "int", default: 0 })
+  like: number;
 
   @Column({ type: "int", default: 0 })
   organicClick: number;

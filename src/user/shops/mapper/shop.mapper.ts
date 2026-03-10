@@ -42,6 +42,7 @@ export class ShopMapper {
             area: shop.shopAddress.area ?? null,
           }
         : null,
+      isFavourite: shop.isFavourite ?? false,
     };
   }
 
@@ -76,6 +77,7 @@ export class ShopMapper {
       totalReviews: reviews.length,
       reviews,
       products,
+      isFavourite: shop.isFavourite ?? false,
     };
   }
 }

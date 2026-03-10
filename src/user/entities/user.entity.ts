@@ -6,6 +6,7 @@ import { Order } from "src/orders/entities/orders.entity";
 import { ConversationParticipant } from "src/participants/entities/participants.entity";
 import { Product } from "src/products/entities/product.entity";
 import { ProductEvent } from "src/products/events/entities/events.entity";
+import { ProductReview } from "src/products/reviews/entities/product-review.entity";
 import { ProductView } from "src/products/views/entities/views.entity";
 import { Reel } from "src/reels/entities/reels.entity";
 import { Wishlist } from "src/wishlists/entities/wishlists.entity";
@@ -140,6 +141,9 @@ export class User {
 
   @OneToMany(() => FavouriteShop, (favourite) => favourite.user)
   favouriteShops: FavouriteShop[];
+
+  @OneToMany(() => ProductReview, (review) => review.user)
+  productReviews: ProductReview[];
 
   // @OneToMany(() => Message, (message) => message.sender)
   // messages: Message[];

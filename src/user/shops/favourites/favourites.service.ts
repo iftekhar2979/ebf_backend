@@ -81,4 +81,39 @@ export class FavouritesService {
   private async clearCache(userId: string) {
     await this.redisService.deleteByPatternSafe(`${this.getCacheKey(userId)}*`);
   }
+
+  async isFavourite(userId: string, shopId: number): Promise<{ isFavourite: boolean; shopId: number }> {
+    const cacheKey = `${this.getCacheKey(userId)}:isFav:${shopId}`;
+    const cached = await this.redisService.get(cacheKey);
+
+    if (cached !== null) {
+      return { isFavourite: cached === "true", shopId };
+    }
+
+    const favourite = await this.favouritRepository.findOne({
+      where: { userId, shopId },
+    });
+
+    const result = !!favourite;
+    await this.redisService.setEx(cacheKey, String(result), 3600); // Cache for 1 hour
+    return { isFavourite: result, shopId };
+  }
+
+  async getFavouriteShopIds(userId: string): Promise<number[]> {
+    const cacheKey = `${this.getCacheKey(userId)}:ids`;
+    const cached = await this.redisService.get(cacheKey);
+
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    const favourites = await this.favouritRepository.find({
+      where: { userId },
+      select: ["shopId"],
+    });
+
+    const result = favourites.map((f) => f.shopId);
+    await this.redisService.setEx(cacheKey, JSON.stringify(result), 3600);
+    return result;
+  }
 }

@@ -56,4 +56,6 @@ export class ShopProfile {
 
   @OneToMany(() => FavouriteShop, (favourite) => favourite.shop)
   favourites: FavouriteShop[];
+
+  isFavourite?: boolean;
 }

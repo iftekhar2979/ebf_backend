@@ -3,13 +3,13 @@ import { GetUser } from "src/auth/decorators/get-user.decorator";
 import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard"; // adjust path as needed
 import { User } from "../entities/user.entity";
 import {
-    CreateShopReviewDto,
-    PaginatedResponse,
-    PaginationQueryDto,
-    SearchShopsQueryDto,
-    ShopDetailResponse,
-    ShopListItem,
-    ShopReviewResponse,
+  CreateShopReviewDto,
+  PaginatedResponse,
+  PaginationQueryDto,
+  SearchShopsQueryDto,
+  ShopDetailResponse,
+  ShopListItem,
+  ShopReviewResponse,
 } from "./dto/shop.dto";
 import { ShopService } from "./externalService/shopService";
 
@@ -24,8 +24,11 @@ export class ShopsController {
    * Supports pagination: ?page=1&limit=10
    */
   @Get()
-  async getShops(@Query() query: SearchShopsQueryDto): Promise<PaginatedResponse<ShopListItem>> {
-    return this._shopService.getShops(query);
+  async getShops(
+    @Query() query: SearchShopsQueryDto,
+    @GetUser("id") userId?: string
+  ): Promise<PaginatedResponse<ShopListItem>> {
+    return this._shopService.getShops(query, userId);
   }
 
   /**
@@ -33,8 +36,11 @@ export class ShopsController {
    * Full shop detail: info + address + products + reviews
    */
   @Get(":shopId")
-  async getShopById(@Param("shopId", ParseIntPipe) shopId: number): Promise<ShopDetailResponse> {
-    return this._shopService.getShopById(shopId);
+  async getShopById(
+    @Param("shopId", ParseIntPipe) shopId: number,
+    @GetUser("id") userId?: string
+  ): Promise<ShopDetailResponse> {
+    return this._shopService.getShopById(shopId, userId);
   }
 
   /**

@@ -1,13 +1,13 @@
 import {
-    Controller,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Param,
-    ParseIntPipe,
-    Post,
-    Query,
-    UseGuards,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+  UseGuards
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { GetUser } from "src/auth/decorators/get-user.decorator";
@@ -39,5 +39,12 @@ export class FavouritesController {
   @ApiOperation({ summary: "Get list of favourite shops with pagination" })
   async findAll(@GetUser() user: User, @Query() paginationDto: PaginationDto) {
     return this.favouritesService.getFavourites(user, paginationDto);
+  }
+
+  @Get(":shopId")
+  @Roles(UserRoles.USER)
+  @ApiOperation({ summary: "Check if a shop is in favorites" })
+  async checkFavourite(@GetUser() user: User, @Param("shopId", ParseIntPipe) shopId: number) {
+    return this.favouritesService.isFavourite(user.id, shopId);
   }
 }

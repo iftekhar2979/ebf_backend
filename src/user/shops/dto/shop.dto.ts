@@ -74,6 +74,7 @@ export interface ShopListItem {
     city: string | null;
     area: string | null;
   } | null;
+  isFavourite: boolean;
 }
 
 export interface ShopReviewResponse {
@@ -111,4 +112,5 @@ export interface ShopDetailResponse {
   totalReviews: number;
   reviews: ShopReviewResponse[];
   products: FlatProduct[];
+  isFavourite: boolean;
 }

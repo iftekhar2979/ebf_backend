@@ -13,6 +13,7 @@ import { ProductsController } from "./products.controller";
 import { ProductsService } from "./products.service";
 import { RankingsModule } from "./rankings/rankings.module";
 import { RanksModule } from "./ranks/ranks.module";
+import { ProductReviewsModule } from "./reviews/product-reviews.module";
 import { StatsModule } from "./stats/stats.module";
 import { SubCategoriesModule } from "./sub_categories/sub_categories.module";
 import { VarientsModule } from "./varients/varients.module";
@@ -36,6 +37,7 @@ import { ViewsModule } from "./views/views.module";
     GlobalStatsModule,
     CachesModule,
     RankingsModule,
+    ProductReviewsModule,
   ],
 })
 export class ProductsModule {}

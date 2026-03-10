@@ -2,19 +2,20 @@ import { CartItem } from "src/carts/cart_items/entities/cart_items.entity";
 import { User } from "src/user/entities/user.entity";
 import { Wishlist } from "src/wishlists/entities/wishlists.entity";
 import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  OneToOne,
-  PrimaryGeneratedColumn,
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    ManyToOne,
+    OneToMany,
+    OneToOne,
+    PrimaryGeneratedColumn,
 } from "typeorm";
 import { ProductBoosting } from "../boosts/entities/boosts.entity";
 import { ProductEvent } from "../events/entities/events.entity";
 import { ProductImage } from "../images/entities/images.entity";
 import { ProductRank } from "../ranks/entities/product_rank.entity";
+import { ProductReview } from "../reviews/entities/product-review.entity";
 import { ProductStat } from "../stats/entities/product_stats.entity";
 import { SubCategory } from "../sub_categories/entities/sub_categories.entity";
 import { ProductVariant } from "../varients/entities/varients.entity";
@@ -102,4 +103,7 @@ export class Product {
 
   @OneToOne(() => ProductRank, (rank) => rank.product)
   rank: ProductRank;
+
+  @OneToMany(() => ProductReview, (review) => review.product)
+  reviews: ProductReview[];
 }
