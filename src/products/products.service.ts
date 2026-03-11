@@ -1,12 +1,11 @@
 import { InjectQueue } from "@nestjs/bull";
 import {
-    BadRequestException,
-    ConflictException,
-    Injectable,
-    InternalServerErrorException,
-    Logger,
-    NotFoundException,
-    ServiceUnavailableException,
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  ServiceUnavailableException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Queue } from "bull";
@@ -14,6 +13,7 @@ import { PRODUCT_PROCESSORS } from "src/bull/processors/product/types/types";
 import { InjectLogger } from "src/shared/decorators/logger.decorator";
 import { User } from "src/user/entities/user.entity";
 import { DataSource, Repository } from "typeorm";
+import { Logger } from "winston";
 import { ProductCacheService } from "./caches/caches.service";
 import { CreateProductDto } from "./dto/CreateProduct.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
@@ -21,6 +21,7 @@ import { Product } from "./entities/product.entity";
 import { ProductImage } from "./images/entities/images.entity";
 import { LikesService } from "./likes/likes.service";
 import { RankingsService } from "./rankings/rankings.service";
+import { ProductRecommendationsService } from "./recommendations/recommendations.service";
 import { StatsService } from "./stats/stats.service";
 import { SubCategory } from "./sub_categories/entities/sub_categories.entity";
 import { ProductFilters } from "./types/productFilters";
@@ -31,6 +32,7 @@ export class ProductsService {
   constructor(
     private readonly _dataSource: DataSource,
     private readonly productCacheService: ProductCacheService,
+    private readonly recommendationsService: ProductRecommendationsService,
     @InjectLogger() private readonly logger: Logger,
     @InjectQueue(PRODUCT_PROCESSORS.PROCESSOR) private readonly productQueue: Queue,
     @InjectRepository(Product) private readonly productRepository: Repository<Product>,
@@ -217,10 +219,12 @@ export class ProductsService {
       subCategoryId: savedProduct.subCategoryId,
     });
 
-    // await this.productQueue.add(PRODUCT_PROCESSORS.IMAGE_PROCESSING, {
-    //   productId: savedProduct.id,
-    //   imageUrls: createProductDto.images.map((img) => img.image),
-    // });
+    // Invalidate product lists and subcategory recommendations so the new
+    // product is discoverable immediately.
+    await Promise.all([
+      this.productCacheService.invalidateProductLists(),
+      this.productCacheService.invalidateRecommendationsForSubCategory(savedProduct.subCategoryId),
+    ]);
 
     return {
       message: "Product created successfully",
@@ -249,12 +253,10 @@ export class ProductsService {
   }
 
   /**
-   * Soft delete a product
+   * Soft delete a product and fully invalidate its cache footprint.
    */
   async remove(id: number) {
-    const product = await this.productRepository.findOne({
-      where: { id },
-    });
+    const product = await this.productRepository.findOne({ where: { id } });
 
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found`);
@@ -262,12 +264,12 @@ export class ProductsService {
 
     await this.productRepository.softDelete(id);
 
-    // Invalidate cache
-    await this.productQueue.add("invalidate-cache", {
-      productId: id,
-      userId: product.userId,
-      subCategoryId: product.subCategoryId,
-    });
+    // Complete, synchronous cache teardown (no fire-and-forget risk)
+    await Promise.all([
+      this.productCacheService.invalidateProductCaches(id, product.userId, product.subCategoryId),
+      this.productCacheService.invalidateRecommendationsForProduct(id),
+      this.productCacheService.invalidateRecommendationsForSubCategory(product.subCategoryId),
+    ]);
 
     return { message: "Product deleted successfully" };
   }
@@ -278,7 +280,7 @@ export class ProductsService {
 
     const cachedResult = await this.productCacheService.getProductList(cacheKey);
     if (cachedResult) {
-      this.logger.log("Returning products from cache");
+      this.logger.info("Returning products from cache");
       return cachedResult;
     }
 
@@ -404,11 +406,11 @@ export class ProductsService {
 
   async findOne(id: number, userId?: string) {
     // 1️⃣ Try cache first
-    // const cached = await this.productCacheService.getProduct(id);
-    // if (cached) {
-    //   this.logger.log(`Returning product ${id} from cache`);
-    //   return cached;
-    // }
+    const cached = await this.productCacheService.getProduct(id);
+    if (cached) {
+      this.logger.info(`Returning product ${id} from cache`);
+      return cached;
+    }
 
     // 2️⃣ Acquire distributed lock (anti-cache-stampede)
     const lockKey = `lock:product:${id}`;
@@ -416,13 +418,12 @@ export class ProductsService {
 
     if (!lockAcquired) {
       // Another request is already fetching from DB
-      // Wait briefly and retry cache
       await new Promise((resolve) => setTimeout(resolve, 100));
       return this.productCacheService.getProduct(id);
     }
 
     try {
-      // 3️⃣ Fetch from DB (use QueryBuilder for better performance control)
+      // 3️⃣ Fetch from DB
       const product = await this.productRepository
         .createQueryBuilder("product")
         .leftJoinAndSelect("product.variants", "variant")
@@ -430,26 +431,60 @@ export class ProductsService {
         .leftJoinAndSelect("product.subCategory", "subCategory")
         .leftJoinAndSelect("product.user", "user")
         .leftJoinAndSelect("user.shopProfile", "shopProfile")
-        // .leftJoinAndSelect("product.stats", "stats")
-        // .leftJoinAndSelect("product.rank", "rank")
+        .leftJoinAndSelect("product.reviews", "reviews")
+        .select([
+          "product",
+          "variant.id",
+          "variant.size",
+          "variant.colorHex",
+          "variant.sku",
+          "variant.unit",
+          "variant.discount",
+          "image.id",
+          "image.image",
+          "subCategory.id",
+          "subCategory.name",
+          "user.id",
+          "user.first_name",
+          "user.last_name",
+          "user.email",
+          "shopProfile.id",
+          "shopProfile.name",
+          "shopProfile.availableDays",
+          "shopProfile.openingTime",
+          "shopProfile.closingTime",
+          "shopProfile.facebookLink",
+          "shopProfile.instagramLink",
+          "shopProfile.whatsappLink",
+          "shopProfile.banner",
+          "shopProfile.logo",
+          "reviews.id",
+          "reviews.rating",
+        ])
         .where("product.id = :id", { id })
         .getOne();
-      console.log(product);
 
       if (!product) {
         throw new NotFoundException(`Product with ID ${id} not found`);
       }
 
-      // 5️⃣ Fetch stats and like status
-      const [stats, isLiked] = await Promise.all([
+      // 4️⃣ Fetch stats and like status in parallel with recommendations
+      const [stats, isLiked, recommendations] = await Promise.all([
         this.statsService.getStats(id),
         userId ? this.likesService.isLiked(id, userId) : Promise.resolve(false),
+        this.recommendationsService.getRecommendations({
+          id: product.id,
+          subCategoryId: product.subCategoryId,
+          targetedGender: product.targetedGender,
+          price: product.price,
+        }),
       ]);
 
       (product as any).stats = stats;
       (product as any).isLiked = isLiked;
+      (product as any).recommendations = recommendations;
 
-      // 6️⃣ Cache with TTL (e.g., 5 minutes)
+      // 5️⃣ Cache the enriched product (1 hour TTL)
       await this.productCacheService.setProduct(id, product);
 
       return product;
@@ -457,6 +492,7 @@ export class ProductsService {
       await this.productCacheService.releaseLock(lockKey, lockAcquired);
     }
   }
+
   async update(id: number, updateProductDto: UpdateProductDto) {
     // 1. PRE-VALIDATE INPUT (outside transaction)
     if (updateProductDto.discountStartDate && updateProductDto.discountEndDate) {
@@ -495,28 +531,19 @@ export class ProductsService {
       const updatedProduct = await queryRunner.manager.findOne(Product, { where: { id } });
       await queryRunner.commitTransaction();
 
-      // 5. SYNCHRONOUS CACHE PURGE (critical for response consistency)
-      // await Promise.all([
-      //   this.cacheManager.del(`product:${id}`),
-      //   this.cacheManager.del(`user:${updatedProduct.userId}:products`),
-      //   this.cacheManager.del(`subcategory:${updatedProduct.subCategoryId}:products`)
-      // ]).catch(err => this.logger.warn('Cache purge partial failure', err));
+      // 5. SYNCHRONOUS CACHE INVALIDATION (atomic, no stale data risk)
+      await Promise.all([
+        this.productCacheService.invalidateProductCaches(
+          id,
+          updatedProduct.userId,
+          updatedProduct.subCategoryId
+        ),
+        this.productCacheService.invalidateRecommendationsForProduct(id),
+        this.productCacheService.invalidateRecommendationsForSubCategory(updatedProduct.subCategoryId),
+      ]);
 
-      // // 6. ASYNC QUEUE FOR SECONDARY INVALIDATION (with retry)
-      // this.productQueue.add('deep-invalidate-cache', {
-      //   productId: id,
-      //   oldKeys: [/* capture pre-update userId/subCat if mutable */],
-      //   newKeys: [
-      //     `product:${id}`,
-      //     `user:${updatedProduct.userId}:products`,
-      //     `subcategory:${updatedProduct.subCategoryId}:products`
-      //   ]
-      // }, {
-      //   attempts: 3,
-      //   backoff: { type: 'exponential', delay: 1000 }
-      // }).catch(err => this.logger.error('Queue enqueue failed', err));
+      return updatedProduct;
 
-      return updatedProduct; // Fresh DB data - no stale cache risk
     } catch (error) {
       await queryRunner.rollbackTransaction();
       // this.handleDbError(error); // Centralized error normalization

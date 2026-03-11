@@ -14,6 +14,7 @@ import { ProductsController } from "./products.controller";
 import { ProductsService } from "./products.service";
 import { RankingsModule } from "./rankings/rankings.module";
 import { RanksModule } from "./ranks/ranks.module";
+import { ProductRecommendationsService } from "./recommendations/recommendations.service";
 import { ProductReviewsModule } from "./reviews/product-reviews.module";
 import { StatsModule } from "./stats/stats.module";
 import { SubCategoriesModule } from "./sub_categories/sub_categories.module";
@@ -22,7 +23,7 @@ import { ViewsModule } from "./views/views.module";
 
 @Module({
   controllers: [ProductsController],
-  providers: [ProductsService],
+  providers: [ProductsService, ProductRecommendationsService],
   imports: [
     TypeOrmModule.forFeature([Product]),
     BullModule.registerQueue({ name: PRODUCT_PROCESSORS.PROCESSOR }),

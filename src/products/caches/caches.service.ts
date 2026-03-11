@@ -8,6 +8,7 @@ export class ProductCacheService {
   private readonly PRODUCT_TTL = 3600; // 1 hour
   private readonly PRODUCT_LIST_TTL = 300; // 5 minutes
   private readonly PRODUCT_STATS_TTL = 600; // 10 minutes
+  readonly RECOMMENDATION_TTL = 600; // 10 minutes
 
   constructor(private readonly redisService: RedisService) {}
 
@@ -32,6 +33,14 @@ export class ProductCacheService {
 
   private getSubCategoryProductsKey(subCategoryId: number): string {
     return `subcategory:${subCategoryId}:products`;
+  }
+
+  private getRecommendationKey(cacheKey: string): string {
+    return `product:rec:${cacheKey}`;
+  }
+
+  private getSubCategoryRecommendationPattern(subCategoryId: number): string {
+    return `product:rec:product:recommendations:subcat:${subCategoryId}:*`;
   }
 
   private getLockKey(key: string): string {
@@ -131,6 +140,33 @@ export class ProductCacheService {
   async invalidateSubCategoryProducts(subCategoryId: number): Promise<void> {
     const key = this.getSubCategoryProductsKey(subCategoryId);
     await this.redisService.del(key);
+  }
+
+  // ========== Recommendation Caching ==========
+
+  async getRecommendations(cacheKey: string): Promise<any | null> {
+    const key = this.getRecommendationKey(cacheKey);
+    const value = await this.redisService.get<string>(key);
+    return value ? JSON.parse(value) : null;
+  }
+
+  async setRecommendations(cacheKey: string, data: any[], ttl: number): Promise<void> {
+    const key = this.getRecommendationKey(cacheKey);
+    await this.redisService.setEx(key, JSON.stringify(data), ttl);
+  }
+
+  async invalidateByPattern(pattern: string): Promise<void> {
+    await this.redisService.deleteByPatternSafe(pattern);
+  }
+
+  async invalidateRecommendationsForSubCategory(subCategoryId: number): Promise<void> {
+    const pattern = this.getSubCategoryRecommendationPattern(subCategoryId);
+    await this.invalidateByPattern(pattern);
+  }
+
+  async invalidateRecommendationsForProduct(productId: number): Promise<void> {
+    const pattern = `product:rec:product:recommendations:${productId}:*`;
+    await this.invalidateByPattern(pattern);
   }
 
   // ========== Bulk Operations ==========
