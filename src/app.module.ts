@@ -39,8 +39,9 @@ import { SeederService } from "./seeder/seeder.service";
 import { SettingsModule } from "./settings/settings.module";
 import { SocketModule } from "./socket/socket.module";
 
-import { AuthQueueProcessor } from "./bull/processors/AuthenticationQueue";
-import { BoostQueueProcessor } from "./bull/processors/Boost.queue.processor";
+import { AuthQueueProcessor } from "./bull/processors/auth/AuthenticationQueue";
+// import { BoostQueueProcessor } from "./bull/processors/boost/Boost.queue.processor";
+import { BoostQueueProcessor } from "./bull/processors/boost/Boost.queue.processor";
 import { EventQueueProcessor } from "./bull/processors/Event.queue.processor";
 import { ProductQueueProcessor } from "./bull/processors/product/productQueue";
 import { ReelsViewProcessor } from "./bull/processors/ReelsViewQueue";

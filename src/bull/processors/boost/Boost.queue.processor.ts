@@ -1,10 +1,10 @@
-import { Processor, Process, OnQueueError, OnQueueFailed } from "@nestjs/bull";
-import { Job } from "bull";
+import { OnQueueError, OnQueueFailed, Process, Processor } from "@nestjs/bull";
 import { Injectable } from "@nestjs/common";
+import { Job } from "bull";
+import { BoostsService } from "src/products/boosts/boosts.service";
+import { StatsService } from "src/products/stats/stats.service";
 import { InjectLogger } from "src/shared/decorators/logger.decorator";
 import { Logger } from "winston";
-import { StatsService } from "src/products/stats/stats.service";
-import { BoostsService } from "src/products/boosts/boosts.service";
 
 export interface ActivateBoostJob {
   boostId: number;

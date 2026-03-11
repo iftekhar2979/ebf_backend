@@ -6,10 +6,10 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Queue } from "bullmq";
 import { DataSource, Repository } from "typeorm";
 import { Logger } from "winston";
+import { } from "../bull/processors/cart.queue";
 import { RedisService } from "../redis/redis.service";
 import { InjectLogger } from "../shared/decorators/logger.decorator";
 import { CART_QUEUE } from "./ carts.queue";
-import { } from "./../bull/processors/cart.queue";
 import { CartItem } from "./cart_items/entities/cart_items.entity";
 import { Cart, CartStatus } from "./entities/carts.entity";
 

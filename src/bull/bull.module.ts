@@ -12,7 +12,6 @@ import { Verification } from "src/user/entities/verification.entity";
 import { UserModule } from "src/user/user.module";
 import { BullController } from "./bull.controller";
 import { BullService } from "./bull.service";
-import { AuthQueueProcessor } from "./processors/AuthenticationQueue";
 import { QueueProducerService } from "./queue-producer.service";
 
 @Module({
@@ -39,7 +38,7 @@ import { QueueProducerService } from "./queue-producer.service";
     UserModule,
     OtpModule,
   ],
-  providers: [BullService, AuthQueueProcessor, QueueProducerService],
+  providers: [BullService, QueueProducerService],
   controllers: [BullController],
   exports: [QueueProducerService],
 })

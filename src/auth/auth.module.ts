@@ -4,7 +4,9 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { AuthQueue } from "src/bull/processors/auth/types/auth_queue.types";
 import { OtpModule } from "src/otp/otp.module";
+import { Verification } from "src/user/entities/verification.entity";
 import { MailModule } from "../mail/mail.module";
 import { User } from "../user/entities/user.entity";
 import { UserModule } from "../user/user.module";
@@ -13,7 +15,6 @@ import { AuthService } from "./auth.service";
 import { GoogleStrategy } from "./strategies/google.strategy";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { LocalStrategy } from "./strategies/local.strategy";
-import { Verification } from "src/user/entities/verification.entity";
 
 /**
  * It is a feature module where we keep the controller, service and other code related to authentication and  we import other modules and configure modules and packages that are being used in this module.
@@ -42,10 +43,10 @@ import { Verification } from "src/user/entities/verification.entity";
         };
       },
     }),
-    forwardRef(() => UserModule),
+  forwardRef(() => UserModule),
     MailModule,
     OtpModule,
-    BullModule.registerQueue({ name: "notifications" }, { name: "otp" }, { name: "authentication" }),
+    BullModule.registerQueue({ name: "notifications" }, { name: "otp" }, { name: AuthQueue.PROCESSOR}),
   ],
   controllers: [AuthController],
   providers: [AuthService, LocalStrategy, JwtStrategy, GoogleStrategy],

@@ -13,9 +13,10 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Queue } from "bull";
+import { Queue } from "bullmq";
 import { createHash } from "crypto";
 import { Request } from "express";
+import { AuthQueue } from "src/bull/processors/auth/types/auth_queue.types";
 import { OtpType } from "src/otp/entities/otp.entity";
 import { OtpService } from "src/otp/otp.service";
 import { RedisService } from "src/redis/redis.service";
@@ -55,7 +56,7 @@ export class AuthService {
     private readonly _dataSource: DataSource,
     private readonly _redisService: RedisService,
     @InjectQueue("otp") private _otpQueue: Queue,
-    @InjectQueue("authentication") private _authQueue: Queue
+    @InjectQueue(AuthQueue.PROCESSOR) private _authQueue: Queue
   ) {
     this._FR_HOST = _configService.get<string>(`FR_BASE_URL`);
   }
@@ -418,9 +419,9 @@ export class AuthService {
     this._logger.log(`Storing refresh token in Redis REFERESH== ${hashedRT}`, AuthService.name);
     await this._redisService.setWithOptions(REFERESH_TOKEN_CACHE_KEY, hashedRT, { EX: REFRESH_TOKEN_TTL });
 
-    // if (fcm) {
-    //   await this._authQueue.add("fcm_store", { user, fcm });
-    // }
+    if (fcm) {
+      await this._authQueue.add(AuthQueue.FCM_STORE, { user, fcm });
+    }
 
     return {
       ok: true,
