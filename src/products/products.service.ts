@@ -423,7 +423,8 @@ export class ProductsService {
     }
 
     try {
-      // 3️⃣ Fetch from DB
+      // 3️⃣ Single optimized query — product + variants + images + subCat + user + shopProfile + reviews + stats
+      // Stats is a OneToOne relation — joining it here costs nothing extra vs a separate query
       const product = await this.productRepository
         .createQueryBuilder("product")
         .leftJoinAndSelect("product.variants", "variant")
@@ -432,6 +433,7 @@ export class ProductsService {
         .leftJoinAndSelect("product.user", "user")
         .leftJoinAndSelect("user.shopProfile", "shopProfile")
         .leftJoinAndSelect("product.reviews", "reviews")
+        .leftJoinAndSelect("product.stats", "stats")  // ← eliminates separate stats query
         .select([
           "product",
           "variant.id",
@@ -460,6 +462,15 @@ export class ProductsService {
           "shopProfile.logo",
           "reviews.id",
           "reviews.rating",
+          // Stats fields — all fetched in the same query, no extra round-trip
+          "stats.id",
+          "stats.totalViews",
+          "stats.clicks",
+          "stats.like",
+          "stats.organicClick",
+          "stats.totalBoostScore",
+          "stats.totalCarts",
+          "stats.totalOrders",
         ])
         .where("product.id = :id", { id })
         .getOne();
@@ -468,9 +479,9 @@ export class ProductsService {
         throw new NotFoundException(`Product with ID ${id} not found`);
       }
 
-      // 4️⃣ Fetch stats and like status in parallel with recommendations
-      const [stats, isLiked, recommendations] = await Promise.all([
-        this.statsService.getStats(id),
+      // 4️⃣ Run likes + recommendations in parallel (2 round-trips total, now down from 3)
+      // Stats is already hydrated on `product.stats` — no need to fetch separately
+      const [isLiked, recommendations] = await Promise.all([
         userId ? this.likesService.isLiked(id, userId) : Promise.resolve(false),
         this.recommendationsService.getRecommendations({
           id: product.id,
@@ -480,7 +491,6 @@ export class ProductsService {
         }),
       ]);
 
-      (product as any).stats = stats;
       (product as any).isLiked = isLiked;
       (product as any).recommendations = recommendations;
 
@@ -492,6 +502,7 @@ export class ProductsService {
       await this.productCacheService.releaseLock(lockKey, lockAcquired);
     }
   }
+
 
   async update(id: number, updateProductDto: UpdateProductDto) {
     // 1. PRE-VALIDATE INPUT (outside transaction)

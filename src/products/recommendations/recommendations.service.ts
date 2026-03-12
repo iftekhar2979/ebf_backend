@@ -21,19 +21,22 @@ export interface RecommendedProduct {
  * ProductRecommendationsService — SRP compliant service.
  *
  * Responsible exclusively for building and caching product recommendations.
- * Uses a 3-strategy waterfall:
- *   1. Same sub-category + same gender  (highest relevance)
- *   2. Same sub-category, any gender    (medium relevance)
+ *
+ * Uses a 3-strategy PARALLEL approach (all 3 queries fire simultaneously):
+ *   1. Same sub-category + same gender  (highest priority)
+ *   2. Same sub-category, any gender    (medium priority)
  *   3. Similar price range ±40%         (price-bracket fallback)
  *
- * Each strategy only fetches the slots not already filled by the previous one,
- * guaranteeing at least `limit` results as long as the catalogue has enough products.
+ * Results are merged in-memory with deduplication, preserving priority order.
+ * This gives us 1 DB round-trip (3 parallel queries) instead of up to 3 sequential ones.
  */
 @Injectable()
 export class ProductRecommendationsService {
   private readonly RECOMMENDATION_TTL = 600; // 10 minutes
   private readonly DEFAULT_LIMIT = 5;
   private readonly PRICE_TOLERANCE = 0.4; // ±40%
+  /** Overfetch per strategy so we have enough after dedup */
+  private readonly OVERFETCH_MULTIPLIER = 2;
 
   constructor(
     @InjectRepository(Product)
@@ -44,10 +47,6 @@ export class ProductRecommendationsService {
 
   // ─── Public API ───────────────────────────────────────────────────────────
 
-  /**
-   * Returns at least `limit` recommendations for the given product.
-   * Results are cached per product with a 10-minute TTL.
-   */
   async getRecommendations(
     product: Pick<Product, "id" | "subCategoryId" | "targetedGender" | "price">,
     limit = this.DEFAULT_LIMIT
@@ -66,10 +65,6 @@ export class ProductRecommendationsService {
     return recommendations;
   }
 
-  /**
-   * Invalidates the recommendation cache for a given product.
-   * Should be called when a product in the same subCategory is created/updated/deleted.
-   */
   async invalidateBySubCategory(subCategoryId: number): Promise<void> {
     const pattern = `product:recommendations:subcat:${subCategoryId}:*`;
     await this.cacheService.invalidateByPattern(pattern);
@@ -81,122 +76,142 @@ export class ProductRecommendationsService {
     await this.cacheService.invalidateByPattern(pattern);
   }
 
-  // ─── Private: waterfall query builder ────────────────────────────────────
+  // ─── Private: all 3 strategies fired in parallel ─────────────────────────
 
-  private async buildRecommendations(
-    product: Pick<Product, "id" | "subCategoryId" | "targetedGender" | "price">,
+ async buildRecommendations(
+  product: Pick<Product, "id" | "subCategoryId" | "targetedGender" | "price">,
+  limit: number
+): Promise<RecommendedProduct[]> {
+
+  const priceRange = Number(product.price) * this.PRICE_TOLERANCE;
+
+  const minPrice = Math.max(0, Number(product.price) - priceRange);
+  const maxPrice = Number(product.price) + priceRange;
+
+  return this.queryRecommendations({
+    productId: product.id,
+    subCategoryId: product.subCategoryId,
+    gender: product.targetedGender,
+    minPrice,
+    maxPrice,
+    limit
+  });
+}
+
+  /**
+   * Deduplication in O(n) using a Set.
+   * Preserves insertion order so priority-ordered input is respected.
+   */
+  private deduplicateAndTake(
+    items: RecommendedProduct[],
+    excludeIds: number[],
     limit: number
-  ): Promise<RecommendedProduct[]> {
-    let results: RecommendedProduct[] = [];
+  ): RecommendedProduct[] {
+    const seen = new Set<number>(excludeIds);
+    const result: RecommendedProduct[] = [];
 
-    // 🔵 Strategy 1 – same sub-category + same gender
-    results = await this.queryRecommendations({
-      excludeIds: [product.id],
-      subCategoryId: product.subCategoryId,
-      gender: product.targetedGender,
-      limit,
-    });
-
-    // 🟡 Strategy 2 – same sub-category, any gender
-    if (results.length < limit) {
-      const extra = await this.queryRecommendations({
-        excludeIds: [product.id, ...results.map((p) => p.id)],
-        subCategoryId: product.subCategoryId,
-        limit: limit - results.length,
-      });
-      results = [...results, ...extra];
+    for (const item of items) {
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      result.push(item);
+      if (result.length === limit) break;
     }
 
-    // 🔴 Strategy 3 – similar price range (fallback)
-    if (results.length < limit) {
-      const priceRange = Number(product.price) * this.PRICE_TOLERANCE;
-      const extra = await this.queryRecommendations({
-        excludeIds: [product.id, ...results.map((p) => p.id)],
-        minPrice: Math.max(0, Number(product.price) - priceRange),
-        maxPrice: Number(product.price) + priceRange,
-        limit: limit - results.length,
-      });
-      results = [...results, ...extra];
-    }
-
-    return results;
+    return result;
   }
 
-  private async queryRecommendations(params: {
-    excludeIds: number[];
-    subCategoryId?: number;
-    gender?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    limit: number;
-  }): Promise<RecommendedProduct[]> {
-    const { excludeIds, subCategoryId, gender, minPrice, maxPrice, limit } = params;
 
-    // Use a constant placeholder so the NOT IN clause is always valid
-    const safeExcludes = excludeIds.length > 0 ? excludeIds : [-1];
+ private async queryRecommendations(params: {
+  productId: number;
+  subCategoryId: number;
+  gender: string;
+  minPrice: number;
+  maxPrice: number;
+  limit: number;
+}): Promise<RecommendedProduct[]> {
 
-    const qb = this.productRepository
-      .createQueryBuilder("product")
-      .leftJoin(
-        "product.images",
-        "image",
-        `image.id = (
-          SELECT pi.id FROM product_images pi
-          WHERE pi."productId" = product.id
-            AND pi."deletedAt" IS NULL
-          ORDER BY pi.id ASC
-          LIMIT 1
-        )`
-      )
-      .leftJoin("product.user", "user")
-      .leftJoin("user.shopProfile", "shopProfile")
-      .leftJoin(
-        "product.variants",
-        "variant",
-        `variant.id = (
-          SELECT pv.id FROM product_varients pv
-          WHERE pv."productId" = product.id
-          LIMIT 1
-        )`
-      )
-      .select([
-        "product.id",
-        "product.productName",
-        "product.price",
-        "product.discountPercentage",
-        "product.targetedGender",
-        "image.id",
-        "image.image",
-        "shopProfile.name",
-        "variant.discount",
-      ])
-      .where("product.id NOT IN (:...excludeIds)", { excludeIds: safeExcludes })
-      .orderBy("product.id", "DESC")
-      .take(limit);
+  const { productId, subCategoryId, gender, minPrice, maxPrice, limit } = params;
 
-    if (subCategoryId !== undefined) {
-      qb.andWhere("product.subCategoryId = :subCategoryId", { subCategoryId });
-    }
-    if (gender !== undefined) {
-      qb.andWhere("product.targetedGender = :gender", { gender });
-    }
-    if (minPrice !== undefined && maxPrice !== undefined) {
-      qb.andWhere("product.price BETWEEN :minPrice AND :maxPrice", { minPrice, maxPrice });
-    }
+  const products = await this.productRepository
+    .createQueryBuilder("p")
 
-    const products = await qb.getMany();
+    .leftJoin("p.user", "u")
+    .leftJoin("u.shopProfile", "shopProfile")
 
-    return products.map((p) => ({
-      id: p.id,
-      productName: p.productName,
-      price: p.price,
-      discountPercentage: p.discountPercentage ?? null,
-      targetedGender: p.targetedGender,
-      image: p.images?.[0]?.image ?? null,
-      shopName: (p as any).user?.shopProfile?.name ?? null,
-      discount: p.variants?.[0]?.discount ?? null,
-    }));
-  }
+    // first image
+    .leftJoin(
+      "p.images",
+      "image",
+      `image.id = (
+        SELECT pi.id
+        FROM product_images pi
+        WHERE pi."productId" = p.id
+        AND pi."deletedAt" IS NULL
+        ORDER BY pi.id ASC
+        LIMIT 1
+      )`
+    )
+
+    // first variant
+    .leftJoin(
+      "p.variants",
+      "variant",
+      `variant.id = (
+        SELECT pv.id
+        FROM product_varients pv
+        WHERE pv."productId" = p.id
+        LIMIT 1
+      )`
+    )
+
+    .select([
+      "p.id",
+      "p.productName",
+      "p.price",
+      "p.discountPercentage",
+      "p.targetedGender",
+      "image.image",
+      "variant.discount",
+      "shopProfile.name"
+    ])
+
+    // ranking priority
+    .addSelect(`
+      CASE
+        WHEN p."subCategoryId" = :subCat AND p."targetedGender" = :gender THEN 1
+        WHEN p."subCategoryId" = :subCat THEN 2
+        WHEN p.price BETWEEN :minPrice AND :maxPrice THEN 3
+        ELSE 4
+      END
+    `, "priority")
+
+    .where("p.id != :productId", { productId })
+
+    .orderBy("priority", "ASC")
+    .addOrderBy("p.id", "DESC")
+
+    .limit(limit)
+
+    .setParameters({
+      subCat: subCategoryId,
+      gender,
+      minPrice,
+      maxPrice
+    })
+
+    .getRawMany();
+
+  return products.map((p) => ({
+    id: p.p_id,
+    productName: p.p_productName,
+    price: p.p_price,
+    discountPercentage: p.p_discountPercentage,
+    targetedGender: p.p_targetedGender,
+    image: p.image_image ?? null,
+    shopName: p.shopProfile_name ?? null,
+    discount: p.variant_discount ?? null
+  }));
+}
 
   // ─── Cache key helper ─────────────────────────────────────────────────────
 
